@@ -1,7 +1,7 @@
 | Date     | Travail réalisé la veille | Objectif de la journée | Emplacement du groupe pour la journée | Problèmes rencontrés la veille ? | Besoins particuliers ? |
 |----------|---------------------------|------------------------|---------------------------------------|----------------------------------|------------------------|
-|19.08.25|Spécification du projet    | Commencer processus de développement | Travail à distance      | Aucun                            |                       -|
-|20.08.25|||||
+|19.08.25|Spécification du projet    | Commencer processus de développement | Travail à distance | Aucun                            |                       -|
+|20.08.25|Organistion (maquette site web + approfondissement conaissance QT), répartition des taches, Trello | avance de devops, avancer rendu semaine 1| Manque de conaissance DevOps | Aucun |
 |21.08.25|||||
 |22.08.25|||||
 |25.08.25|||||
