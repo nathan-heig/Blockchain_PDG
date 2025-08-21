@@ -1,10 +1,14 @@
 # SkibidiCoin (SKIBI)
 
 ## Description
-Le but du projet est de créer une cryptomonnaie experimentale reposant sur une blockchain peer-to-peer avec un mécanisme cryptographique Proof of Work (PoW) basé sur l'algorithme de hachage SHA-256. Le projet offre:
-- Un backend blockchain (noeuds, minage, transactions)
-- Une application desktop avec wallet intégré pour gérer les transactions et le minage.
-- Une landing page web de présentation intégrant une documentation et un lien de téléchargement de l'application desktop (Windows, MacOS et Linux).
+Le monde des cryptomonnaies est fascinant mais semble peu accessible. Étant donné que dans notre groupe nous sommes majoritairement en option sécurité et sommes intéressés par la cryptographie, nous avons choisi d'explorer le fonctionnement et les détails d'une blockchain. 
+L'idée clé de ce projet est donc de créer une cryptomonnaie à but pédagogique, volontairement simplifiée, qui nous permettrait d'apprendre, d'expérimenter et de voir fonctionner une blockchain de bout en bout, mais aussi de créer une interface utilisateur simple et claire. 
+Pour cela, nous mettrons en place: 
+- Consensus Proof of Work inspiré du Bitcoin
+- Transactions signées avec ECDSA
+- Réseau P2P
+- Wallet desktop pour miner la cryptomonnaie, manipuler les clés et avoir une vue d'ensemble sur les transactions 
+- Site web de présentation et de téléchargement de l'application desktop.
 
 ### Exigences fonctionnelles
 1. Blockchain
@@ -26,7 +30,7 @@ Le but du projet est de créer une cryptomonnaie experimentale reposant sur une 
 4. Site web
 - présentation du projet
 - Téléchargement de l'application desktop
-- Documentation et FAQ
+- Documentation
 - implémentation en React et Typescript
 
 ### Exigences non-fonctionnelles
@@ -45,35 +49,47 @@ Le but du projet est de créer une cryptomonnaie experimentale reposant sur une 
 5. Déploiement
 - CI/CD automatisé avec GitHub Actions
 
+### Répartition des tâches
+#### Semaine 1
+- Landing page: Benjamin
+- Pipeline DevOps: Nathan
+- Description du projet et spécifications: Colin
+- Processus de travail: 
+
+#### Semaine 2 et 3
+- Design de l'app desktop (QT): 
+- Backend de l'app desktop (BlockChain): Nathan
+- Site web: Benjamin
+
+
 ## Spécificités techniques
-## Backend desktop:
+### Backend desktop:
+- Application C++ avec Qt
 - Challenge cryptographique proof of work
 - Algorithme de hash: SHA-256
 - OpenSSL pour signatures ECDSA
 - Difficulté ajustable pour maintenir un temps de résolution par bloc stable
+- Framework networking: Socket BSD pour le P2P, Boost.asio pour gérer la partie asynchrone
+- Récompense par bloc pour le mineur: à définir ultérieurement
 - Temps par bloc: 1min - 5min
 - Taille par bloc: ~ 100 à 500 transactions
 - C++
-- Framework networking ?? (Socket BSD pour du p2p ??, Boost.asio pour gérer asynchrone)
+- Framework networking: Socket BSD pour le P2P, Boost.asio pour gérer la partie asynchrone
 - Sérialisation
-- Récompense par bloc pour le mineur
 
-## Interface desktop:
+### Interface desktop:
 - Wallet intégré avec import/export de clés
 - Gestionnaire de transactions avec historique
-- Console de deboggage ?
 - Qt 6.x bridge avec Figma
 
-## Site web:
+### Site web:
 - Landpage design
-- stats Real time
-- Téléchargement de l'app desktop
-- guide d'installation et documentation (peut-être à double avec github)
-- FAQ trollesque
 - React.js avec TypeScript
+- Téléchargement de l'app desktop
+- guide d'installation et documentation
 - Hébergé chez Nathan
 
-## Idées supplémentaires:
+### Idées supplémentaires:
 - ThreeJS pour le site web
 - plugin Qt pour un meilleur design
 - Protection DDOS
