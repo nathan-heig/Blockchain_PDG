@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Download, Pickaxe, Coins, Activity, Users, Shield } from "lucide-react";
+import Link from "next/link";
 
 // --- Demo data helpers ---
 const fmt = new Intl.NumberFormat("fr-CH");
@@ -112,9 +113,10 @@ export default function LandingPage() {
         {/* CTA under mock */}
         <div className="mt-16 flex items-center justify-center gap-4">
           <a href="/downloads/qt-wallet.zip" className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-3 font-medium">
-            <Download className="h-5 w-5" /> Télécharger l’app (zip)
+            <Download className="h-5 w-5" /> Télécharger l’app
           </a>
-          <a href="#features" className="inline-flex items-center gap-2 rounded-xl border border-white/15 hover:bg-white/5 px-5 py-3 font-medium text-slate-200">En savoir plus</a>
+          <Link href="/about" className="inline-flex items-center gap-2 rounded-xl border border-white/15 hover:bg-white/5 px-5 py-3 font-medium text-slate-200">En savoir plus
+          </Link>
         </div>
       </section>
 
@@ -127,9 +129,8 @@ export default function LandingPage() {
 
       {/* FOOTER */}
       <footer className="border-t border-white/10 mt-16">
-        <div className="max-w-6xl mx-auto px-6 py-10 text-sm text-slate-400 flex items-center justify-between">
-          <span>© {new Date().getFullYear()} PDGChain</span>
-          <span>Mineurs actifs : <b className="text-slate-200">{fmt.format(stats?.minersActive ?? 0)}</b></span>
+        <div className="max-w-6xl mx-auto px-6 py-10 text-sm text-slate-400 text-center">
+          © {new Date().getFullYear()} SKBC Blockchain
         </div>
       </footer>
     </div>
