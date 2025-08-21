@@ -1,21 +1,24 @@
 name: CI/CD
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
+    types: [closed]
     branches: [ main ]
 
 jobs:
   test:
     name: Run tests
     runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'dev_web' }}
     defaults:
       run:
         working-directory: website
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Après merge on veut le code final de main
+          ref: main
       - name: Use Node.js 20
         uses: actions/setup-node@v4
         with:
@@ -41,23 +44,23 @@ jobs:
     name: Deploy to server
     runs-on: ubuntu-latest
     needs: test
-    if: github.ref == 'refs/heads/main'
+    if: ${{ github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'dev_web' }}
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-            name: static-site
-            path: out
+          name: static-site
+          path: out
 
       - name: Deploy via SSH
         uses: easingthemes/ssh-deploy@v5.1.0
         env:
-            SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-            ARGS: "-rltgoDzvO --delete"
-            SOURCE: "out/"
-            REMOTE_HOST: ${{ secrets.DEPLOY_HOST }}
-            REMOTE_USER: ${{ secrets.DEPLOY_USER }}
-            TARGET: ${{ secrets.DEPLOY_PATH }}/current
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          ARGS: "-rltgoDzvO --delete"
+          SOURCE: "out/"
+          REMOTE_HOST: ${{ secrets.DEPLOY_HOST }}
+          REMOTE_USER: ${{ secrets.DEPLOY_USER }}
+          TARGET: ${{ secrets.DEPLOY_PATH }}/current
 
 
 
