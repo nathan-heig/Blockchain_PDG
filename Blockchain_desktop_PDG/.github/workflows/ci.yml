@@ -1,0 +1,49 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Windows: active l'env MSVC pour Ninja/CL
+      - name: Setup MSVC (Windows only)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Qt 6 (Quick, Controls2, Core5Compat)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.*'                 # LTS par défaut possible
+          cache: 'true'
+          # archives = sous-composants base (Qt6)
+          archives: 'qtdeclarative qtquickcontrols2 qt5compat'  # Quick/QML/Controls2/Core5Compat
+          # (tu peux ajouter d'autres archives/modules si besoin)
+
+      - name: Configure (CMake + Ninja)
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Upload artifact (binary)
+        uses: actions/upload-artifact@v4
+        with:
+          name: hello_qtquick-${{ runner.os }}
+          path: |
+            build/hello_qtquick
+            build/hello_qtquick.exe
+            build/hello_qtquick.app
+          if-no-files-found: ignore
