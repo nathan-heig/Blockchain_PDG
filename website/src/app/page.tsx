@@ -14,11 +14,19 @@ const formatHashrate = (h:number | null | undefined) => {
   return `${v.toFixed(2)} ${units[i]}`;
 };
 
-function useApi(apiBase: string) {
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+type Stats = {
+  minersActive: number;
+  networkHashrate: number;
+  blockHeight: number;
+  tps: number;
+  balance: number;
+};
 
-  const fallbackStats = useMemo(() => ({
+function useApi(apiBase: string) {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const fallbackStats = useMemo<Stats>(() => ({
     minersActive: 42,
     networkHashrate: 12_340_000,
     blockHeight: 123_456,
@@ -26,7 +34,7 @@ function useApi(apiBase: string) {
     balance: 1335.42,
   }), []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Pour l’instant on reste en démo.
     setStats(fallbackStats);
     setLoading(false);
@@ -34,6 +42,7 @@ function useApi(apiBase: string) {
 
   return { stats, loading };
 }
+
 
 export default function LandingPage() {
   const { stats } = useApi("demo");
@@ -83,8 +92,8 @@ export default function LandingPage() {
 
                   {/* actions */}
                   <div className="mt-6 flex gap-4">
-                    <button className="rounded-xl px-5 py-2 bg-violet-600/90 hover:bg-violet-600 text-white font-medium">Send</button>
-                    <button className="rounded-xl px-5 py-2 bg-violet-600/20 hover:bg-violet-600/30 text-violet-200 border border-violet-500/40 font-medium">Receive</button>
+                    <button className="rounded-xl px-5 py-2 bg-violet-600/90 text-white font-medium">Send</button>
+                    <button className="rounded-xl px-5 py-2 bg-violet-600/20 text-violet-200 border border-violet-500/40 font-medium">Receive</button>
                   </div>
                 </div>
               </div>
