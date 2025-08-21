@@ -52,13 +52,14 @@ Pour cela, nous mettrons en place:
 ### Répartition des tâches
 #### Semaine 1
 - Landing page: Benjamin
-- Pipeline DevOps: 
+- Pipeline DevOps: Nathan
 - Description du projet et spécifications: Colin
 - Processus de travail: 
 
 #### Semaine 2 et 3
-- Design de l'app desktop: 
-- Backend de l'app desktop: 
+- Design de l'app desktop (QT): 
+- Backend de l'app desktop (BlockChain): Nathan
+- Site web: Benjamin
 
 
 ## Spécificités techniques
@@ -68,17 +69,13 @@ Pour cela, nous mettrons en place:
 - Algorithme de hash: SHA-256
 - OpenSSL pour signatures ECDSA
 - Difficulté ajustable pour maintenir un temps de résolution par bloc stable
-- Temps par bloc: 30s - 1min
 - Framework networking: Socket BSD pour le P2P, Boost.asio pour gérer la partie asynchrone
-- Sérialisation avec Protocol Buffers
-- Taille par bloc: à définir ultérieurement
-- Récompense par bloc: à définir ultérieurement
+- Récompense par bloc pour le mineur: à définir ultérieurement
 - Temps par bloc: 1min - 5min
 - Taille par bloc: ~ 100 à 500 transactions
 - C++
 - Framework networking: Socket BSD pour le P2P, Boost.asio pour gérer la partie asynchrone
 - Sérialisation
-- Récompense par bloc pour le mineur
 
 ### Interface desktop:
 - Wallet intégré avec import/export de clés
