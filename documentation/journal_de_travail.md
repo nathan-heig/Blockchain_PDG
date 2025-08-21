@@ -32,10 +32,18 @@ Aucun
 
 ## 21.08.25
 ### Travail réalisé la veille
+* Familiarisation avec Qt
+* Familiarisation avec les actions github
+* répartition des tâches
 ### Objectif de la journée
+* Mettre en ligne le site landing
+* Mettre en place des actions github de démonstration pour lundi
 ### Emplacement du groupe pour la journée
+Télétravail
 ### Problèmes rencontrés la veille
+Aucun
 ### Besoins particuliers
+Aucun
 
 
 ## 22.08.25

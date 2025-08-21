@@ -35,3 +35,4 @@ de l'avancement du projet.
         * Créé une release github avec les artéfacts buildés présents sur main
         * Augmente le numéro de version
         * Le site web doit pointer sur les artéfacts de la dernière release
+
