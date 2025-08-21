@@ -49,19 +49,6 @@ Pour cela, nous mettrons en place:
 5. Déploiement
 - CI/CD automatisé avec GitHub Actions
 
-### Répartition des tâches
-#### Semaine 1
-- Landing page: Benjamin
-- Pipeline DevOps: Nathan
-- Description du projet et spécifications: Colin
-- Processus de travail: 
-
-#### Semaine 2 et 3
-- Design de l'app desktop (QT): 
-- Backend de l'app desktop (BlockChain): Nathan
-- Site web: Benjamin
-
-
 ## Spécificités techniques
 ### Backend desktop:
 - Application C++ avec Qt
@@ -84,6 +71,9 @@ Pour cela, nous mettrons en place:
 
 ### Site web:
 - Landpage design
+- Téléchargement de l'app desktop
+- guide d'installation et documentation (peut-être à double avec github)
+- FAQ trollesque
 - React.js avec TypeScript
 - Téléchargement de l'app desktop
 - guide d'installation et documentation
