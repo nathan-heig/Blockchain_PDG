@@ -25,6 +25,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Debug contexte PR
+        run: |
+          echo "HEAD REF: ${{ github.event.pull_request.head.ref }}"
+          echo "BASE REF: ${{ github.event.pull_request.base.ref }}"
+          echo "SHA: $GITHUB_SHA"
+          echo "Actor: $GITHUB_ACTOR"
+          echo "Node version demandé: 20"
+
       - name: Use Node.js 20
         uses: actions/setup-node@v4
         with:
@@ -33,7 +41,10 @@ jobs:
           cache-dependency-path: website/package-lock.json
 
       - name: Install deps
-        run: npm ci
+        run: |
+          npm ci --no-audit --no-fund --loglevel=info
+          echo "Espace disque après install:" && df -h
+          echo "Taille node_modules:" && du -sh node_modules || true
 
       - name: Lint
         run: npm run lint -- --max-warnings=0
@@ -48,7 +59,9 @@ jobs:
             next-cache-${{ hashFiles('website/package-lock.json') }}-
 
       - name: Unit tests (coverage)
-        run: npm test -- --ci --coverage
+        run: |
+          echo "Lancement tests..."
+          npm test -- --ci --coverage --runInBand
 
       - name: Upload coverage (optional)
         if: always()
@@ -60,7 +73,10 @@ jobs:
           retention-days: 5
 
       - name: Build (static export)
-        run: npm run build
+        run: |
+          echo "Début build Next $(date)"
+          npm run build
+          echo "Fin build $(date)"
 
       - name: Upload build artifact (preview)
         uses: actions/upload-artifact@v4

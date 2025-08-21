@@ -23,7 +23,7 @@ type Stats = {
   balance: number;
 };
 
-function useApi(apiBase: string) {
+function useApi() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -46,7 +46,7 @@ function useApi(apiBase: string) {
 
 
 export default function LandingPage() {
-  const { stats } = useApi("demo");
+  const { stats } = useApi();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
