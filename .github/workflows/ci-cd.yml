@@ -46,28 +46,18 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: static-site
-          path: out
+            name: static-site
+            path: out
 
       - name: Deploy via SSH
         uses: easingthemes/ssh-deploy@v5.1.0
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          ARGS: "-rltgoDzvO --delete"
-          SOURCE: "out/"
-          REMOTE_HOST: ${{ secrets.DEPLOY_HOST }}
-          REMOTE_USER: ${{ secrets.DEPLOY_USER }}
-          TARGET: ${{ secrets.DEPLOY_PATH }}/current
+            SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+            ARGS: "-rltgoDzvO --delete"
+            SOURCE: "out/"
+            REMOTE_HOST: ${{ secrets.DEPLOY_HOST }}
+            REMOTE_USER: ${{ secrets.DEPLOY_USER }}
+            TARGET: ${{ secrets.DEPLOY_PATH }}/current
 
-      - name: Restart container (optional) 
-        if: env.RESTART_CMD != ''
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            cd ${{ secrets.DEPLOY_PATH }}
-            docker compose pull || true
-            docker compose up -d --build
+
 
