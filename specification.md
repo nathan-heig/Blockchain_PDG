@@ -51,7 +51,7 @@ Pour cela, nous mettrons en place:
 
 ### Répartition des tâches
 #### Semaine 1
-- Landing page: 
+- Landing page: Benjamin
 - Pipeline DevOps: 
 - Description du projet et spécifications: Colin
 - Processus de travail: 
