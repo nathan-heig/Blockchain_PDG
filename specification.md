@@ -35,7 +35,7 @@ Pour cela, nous mettrons en place:
 
 ### Exigences non-fonctionnelles
 1. Performances
-- Temps cible par bloc court (30s - 1min) pour la démonstration
+- Temps cible par bloc court (1min - 5min) pour la démonstration
 
 2. Sécurité
 - Signatures ECDSA pour toutes les transactions
@@ -67,13 +67,18 @@ Pour cela, nous mettrons en place:
 - Challenge cryptographique proof of work
 - Algorithme de hash: SHA-256
 - OpenSSL pour signatures ECDSA
-- Nombre de tokens max: 21 millions
 - Difficulté ajustable pour maintenir un temps de résolution par bloc stable
 - Temps par bloc: 30s - 1min
 - Framework networking: Socket BSD pour le P2P, Boost.asio pour gérer la partie asynchrone
 - Sérialisation avec Protocol Buffers
 - Taille par bloc: à définir ultérieurement
 - Récompense par bloc: à définir ultérieurement
+- Temps par bloc: 1min - 5min
+- Taille par bloc: ~ 100 à 500 transactions
+- C++
+- Framework networking: Socket BSD pour le P2P, Boost.asio pour gérer la partie asynchrone
+- Sérialisation
+- Récompense par bloc pour le mineur
 
 ### Interface desktop:
 - Wallet intégré avec import/export de clés
@@ -90,11 +95,7 @@ Pour cela, nous mettrons en place:
 ### Idées supplémentaires:
 - ThreeJS pour le site web
 - plugin Qt pour un meilleur design
-- Threading C++
 - Protection DDOS
-- Protection Attaque 51%
-- Node "serveur"
-- DB transmissible pour les transactions
 - Ajouter des statistiques sur la blockchain dans le site web
 
 
