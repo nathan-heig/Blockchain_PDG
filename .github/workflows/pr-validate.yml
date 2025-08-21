@@ -1,0 +1,71 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+# Empêche l'exécution simultanée inutile sur une même PR
+concurrency:
+  group: pr-validate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Lint & Test & Build (PR dev_web)
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.head.ref == 'dev_web' }}
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint -- --max-warnings=0
+
+      - name: Cache Next build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            website/.next/cache
+          key: next-cache-${{ hashFiles('website/package-lock.json') }}-${{ hashFiles('website/src/**/*.{ts,tsx,js,jsx}') }}
+          restore-keys: |
+            next-cache-${{ hashFiles('website/package-lock.json') }}-
+
+      - name: Unit tests (coverage)
+        run: npm test -- --ci --coverage
+
+      - name: Upload coverage (optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: website/coverage
+          if-no-files-found: ignore
+          retention-days: 5
+
+      - name: Build (static export)
+        run: npm run build
+
+      - name: Upload build artifact (preview)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-static-site
+          path: website/out
+          if-no-files-found: ignore
+          retention-days: 3
