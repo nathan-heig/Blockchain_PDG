@@ -31,7 +31,7 @@ Le but du projet est de créer une cryptomonnaie experimentale reposant sur une 
 
 ### Exigences non-fonctionnelles
 1. Performances
-- Temps cible par bloc court (30s - 1min) pour la démonstration
+- Temps cible par bloc court (1min - 5min) pour la démonstration
 
 2. Sécurité
 - Signatures ECDSA pour toutes les transactions
@@ -50,15 +50,13 @@ Le but du projet est de créer une cryptomonnaie experimentale reposant sur une 
 - Challenge cryptographique proof of work
 - Algorithme de hash: SHA-256
 - OpenSSL pour signatures ECDSA
-- Nombre de tokens max: 21 millions
 - Difficulté ajustable pour maintenir un temps de résolution par bloc stable
-- Temps par bloc: 30s - 1min
-- Taille par bloc: ??
+- Temps par bloc: 1min - 5min
+- Taille par bloc: ~ 100 à 500 transactions
 - C++
 - Framework networking ?? (Socket BSD pour du p2p ??, Boost.asio pour gérer asynchrone)
-- Sérialisation avec Protocol Buffers
-- (Récompense par bloc ??)
-- (Comment stocker les blocs dans les nodes ??)
+- Sérialisation
+- Récompense par bloc pour le mineur
 
 ## Interface desktop:
 - Wallet intégré avec import/export de clés
@@ -78,11 +76,7 @@ Le but du projet est de créer une cryptomonnaie experimentale reposant sur une 
 ## Idées supplémentaires:
 - ThreeJS pour le site web
 - plugin Qt pour un meilleur design
-- Threading C++
 - Protection DDOS
-- Protection Attaque 51%
-- Node "serveur"
-- DB transmissible pour les transactions
 - Ajouter des statistiques sur la blockchain dans le site web
 
 
