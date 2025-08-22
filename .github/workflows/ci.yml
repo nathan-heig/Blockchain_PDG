@@ -27,12 +27,12 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.7.3'
+          version: '6.8.3'
           target: 'desktop'
           host: ${{ runner.os == 'Windows' && 'windows' || runner.os == 'macOS' && 'mac' || 'linux' }}
           arch: ${{ runner.os == 'Windows' && 'win64_msvc2022_64' || runner.os == 'macOS' && 'clang_64' || 'linux_gcc_64' }}
-          modules: 'qtdeclarative qtquickcontrols2 qt5compat'
-          cache: 'true'
+          modules: 'qtquickcontrols qt5compat'
+          cache: 'false'
 
       - name: Configure (CMake + Ninja)
         run: cmake -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }}
