@@ -22,6 +22,7 @@ jobs:
           script: |
             cd ${{ secrets.DEPLOY_REPO_PATH }}
             git pull
+            cd website
             docker compose down
             docker compose up -d --build
           
