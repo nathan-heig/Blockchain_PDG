@@ -8,61 +8,21 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Test & Build
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: website
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Use Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: website/package-lock.json
-
-      - name: Install deps
-        run: npm ci
-
-      - name: Lint
-        run: npm run lint -- --max-warnings=0
-
-      - name: Unit tests
-        run: npm test -- --ci
-
-      - name: Build static export
-        run: npm run build
-
-      - name: Upload production artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: prod-static-site
-          path: website/out
-          if-no-files-found: error
-          retention-days: 7
-
   deploy:
     name: Deploy to Server
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - name: Remote deploy (git pull + docker compose)
+        uses: appleboy/ssh-action@v1.2.0
         with:
-          name: prod-static-site
-          path: out
-
-      - name: Sync via SSH (rsync)
-        uses: easingthemes/ssh-deploy@v5.1.0
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          ARGS: "-rltgoDzvO --delete"
-          SOURCE: "out/"
-          REMOTE_HOST: ${{ secrets.DEPLOY_HOST }}
-          REMOTE_USER: ${{ secrets.DEPLOY_USER }}
-          REMOTE_PORT: 2222
-          TARGET: ${{ secrets.DEPLOY_PATH }}/current
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: 2222
+          script: |
+            cd ${{ secrets.DEPLOY_REPO_PATH }}
+            git pull
+            docker compose down
+            docker compose up -d --build
+          
