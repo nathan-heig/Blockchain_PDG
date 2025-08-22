@@ -112,9 +112,9 @@ export default function LandingPage() {
 
         {/* CTA under mock */}
         <div className="mt-16 flex items-center justify-center gap-4">
-          <a href="/downloads/qt-wallet.zip" className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-3 font-medium">
+          <Link href="/download" className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-3 font-medium">
             <Download className="h-5 w-5" /> Télécharger l’app
-          </a>
+          </Link>
           <Link href="/about" className="inline-flex items-center gap-2 rounded-xl border border-white/15 hover:bg-white/5 px-5 py-3 font-medium text-slate-200">En savoir plus
           </Link>
         </div>
