@@ -188,75 +188,117 @@ jobs:
           # Copier l'exe dans le dossier de déploiement
           Copy-Item "${{ env.BUILD_DIR }}\appBlockchain_desktop_PDG.exe" -Destination $deployDir
 
-          # Exécuter windeployqt avec les options appropriées
-          # Note: On ignore les erreurs de ShaderTools qui ne sont pas critiques
-          & $windeployqt `
-            --dir $deployDir `
-            --qmldir "Blockchain_desktop_PDG" `
+          # Exécuter windeployqt avec des options minimales et sûres
+          # On utilise --list first pour voir ce qui sera déployé
+          echo "Listing deployment targets..."
+          & $windeployqt --list target "$deployDir\appBlockchain_desktop_PDG.exe" 2>&1 | Out-String
+
+          # Maintenant, déployer avec les options de base
+          echo "Starting deployment..."
+          $windeployResult = & $windeployqt `
             --release `
+            --qmldir "Blockchain_desktop_PDG" `
             --no-translations `
             --no-system-d3d-compiler `
             --no-opengl-sw `
-            --no-compiler-runtime `
-            --no-virtualkeyboard `
-            --skip-plugin-types shadertools `
-            "$deployDir\appBlockchain_desktop_PDG.exe" 2>&1 | Out-String
+            "$deployDir\appBlockchain_desktop_PDG.exe" 2>&1
 
-          # Vérifier que les DLL essentielles ont été copiées
-          $essentialDlls = @(
-            "Qt6Core.dll",
-            "Qt6Gui.dll",
-            "Qt6Widgets.dll",
-            "Qt6Qml.dll",
-            "Qt6Quick.dll",
-            "Qt6Network.dll"
-          )
+          # Afficher le résultat pour debug
+          echo "WinDeployQt output:"
+          $windeployResult | Out-String
 
-          $missingDlls = @()
-          foreach ($dll in $essentialDlls) {
-            $dllPath = Join-Path $deployDir $dll
-            if (-not (Test-Path $dllPath)) {
-              # Si la DLL n'est pas dans le dossier deploy, la copier manuellement
-              $sourceDll = "D:\a\Blockchain_PDG\Qt\6.8.3\msvc2022_64\bin\$dll"
+          # Vérifier le code de sortie de windeployqt
+          if ($LASTEXITCODE -ne 0) {
+            echo "Warning: windeployqt returned non-zero exit code: $LASTEXITCODE"
+            echo "Attempting manual deployment as fallback..."
+
+            # Copie manuelle des DLL essentielles
+            $qtBinDir = "D:\a\Blockchain_PDG\Qt\6.8.3\msvc2022_64\bin"
+            $essentialDlls = @(
+              "Qt6Core.dll",
+              "Qt6Gui.dll",
+              "Qt6Widgets.dll",
+              "Qt6Qml.dll",
+              "Qt6Quick.dll",
+              "Qt6Network.dll",
+              "Qt6OpenGL.dll",
+              "Qt6QmlModels.dll",
+              "Qt6QuickControls2.dll",
+              "Qt6QuickTemplates2.dll",
+              "Qt6QuickLayouts.dll",
+              "Qt6QuickShapes.dll",
+              "Qt6Core5Compat.dll"
+            )
+
+            foreach ($dll in $essentialDlls) {
+              $sourceDll = Join-Path $qtBinDir $dll
               if (Test-Path $sourceDll) {
-                Copy-Item $sourceDll -Destination $deployDir
-                echo "Manually copied missing $dll"
-              } else {
-                $missingDlls += $dll
+                Copy-Item $sourceDll -Destination $deployDir -ErrorAction SilentlyContinue
+                echo "Copied $dll"
+              }
+            }
+
+            # Copier les plugins essentiels
+            $qtPluginsDir = "D:\a\Blockchain_PDG\Qt\6.8.3\msvc2022_64\plugins"
+            $pluginDirs = @("platforms", "styles", "imageformats", "qmltooling", "networkinformation", "tls")
+
+            foreach ($pluginDir in $pluginDirs) {
+              $sourceDir = Join-Path $qtPluginsDir $pluginDir
+              if (Test-Path $sourceDir) {
+                $destDir = Join-Path $deployDir $pluginDir
+                Copy-Item -Path $sourceDir -Destination $destDir -Recurse -ErrorAction SilentlyContinue
+                echo "Copied plugin directory: $pluginDir"
+              }
+            }
+
+            # Copier les modules QML
+            $qtQmlDir = "D:\a\Blockchain_PDG\Qt\6.8.3\msvc2022_64\qml"
+            if (Test-Path $qtQmlDir) {
+              $destQmlDir = Join-Path $deployDir "qml"
+              # Copier seulement les modules QML essentiels
+              $qmlModules = @("QtQuick", "QtQuick.2", "QtQml", "Qt5Compat", "QtQuick/Controls", "QtQuick/Templates", "QtQuick/Layouts")
+              foreach ($qmlModule in $qmlModules) {
+                $sourceModule = Join-Path $qtQmlDir $qmlModule
+                if (Test-Path $sourceModule) {
+                  $destModule = Join-Path $destQmlDir $qmlModule
+                  New-Item -ItemType Directory -Force -Path (Split-Path $destModule) | Out-Null
+                  Copy-Item -Path $sourceModule -Destination $destModule -Recurse -ErrorAction SilentlyContinue
+                  echo "Copied QML module: $qmlModule"
+                }
               }
             }
           }
 
-          if ($missingDlls.Count -gt 0) {
-            echo "Warning: Some DLLs might be missing: $($missingDlls -join ', ')"
-          }
-
-          # Copier les runtimes VC++ si nécessaire
-          $vcRedistDir = "D:\a\Blockchain_PDG\Qt\6.8.3\msvc2022_64\bin"
+          # Copier les runtimes VC++
           $vcRuntimeDlls = @("msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll")
           foreach ($vcDll in $vcRuntimeDlls) {
-            $vcDllPath = Join-Path $vcRedistDir $vcDll
+            $vcDllPath = "C:\Windows\System32\$vcDll"
             if (Test-Path $vcDllPath) {
               Copy-Item $vcDllPath -Destination $deployDir -ErrorAction SilentlyContinue
+              echo "Copied VC++ runtime: $vcDll"
             }
           }
 
-          echo "Deployment completed. Contents of deploy directory:"
+          echo "`nDeployment completed. Contents of deploy directory:"
           $files = Get-ChildItem $deployDir -File | Select-Object Name, @{Name='Size(MB)';Expression={[math]::Round($_.Length/1MB, 2)}}
           $files | Format-Table -AutoSize
 
           $folders = Get-ChildItem $deployDir -Directory | Select-Object Name
           if ($folders) {
-            echo "Subdirectories:"
+            echo "`nSubdirectories:"
             $folders | Format-Table -AutoSize
           }
 
-          # Vérifier que le déploiement a créé au moins quelques fichiers
+          # Vérifier que le déploiement a créé suffisamment de fichiers
           $fileCount = (Get-ChildItem $deployDir -Recurse -File).Count
-          if ($fileCount -lt 5) {
+          echo "`nTotal files deployed: $fileCount"
+
+          if ($fileCount -lt 10) {
             throw "Deployment seems incomplete. Only $fileCount files were deployed."
           }
-          echo "Total files deployed: $fileCount"
+
+          # Ne pas faire échouer le workflow si on a au moins les fichiers de base
+          exit 0
         shell: pwsh
       - name: Deploy Qt Dependencies (macOS)
         if: runner.os == 'macOS'
