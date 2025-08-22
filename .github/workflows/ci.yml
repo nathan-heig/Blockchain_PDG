@@ -34,12 +34,6 @@ jobs:
           modules: 'qtdeclarative qtquickcontrols2 qt5compat'
           cache: 'true'
 
-      - name: Debug Qt
-        run: |
-        echo "QTDIR=$QTDIR"
-        which qmake || true
-        qmake -v || true
-
       - name: Configure (CMake + Ninja)
         run: cmake -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }}
 
