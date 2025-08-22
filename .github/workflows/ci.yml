@@ -15,25 +15,75 @@ jobs:
     env:
       BUILD_DIR: build
       CMAKE_BUILD_TYPE: Release
+      QT_VER: 6.8.3
+      QT_HOST: ${{ runner.os == 'Windows' && 'windows' || runner.os == 'macOS' && 'mac' || 'linux' }}
+      QT_ARCH: ${{ runner.os == 'Windows' && 'win64_msvc2022_64' || runner.os == 'macOS' && 'clang_64' || 'linux_gcc_64' }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup MSVC (Windows only)
+      - name: Setup MSVC (Windows)
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Install Qt
+      # 1) Lister les modules disponibles et choisir automatiquement les bons noms
+      - name: Discover available Qt modules (aqt)
+        run: |
+          python -m pip install --upgrade pip aqtinstall
+          echo "Listing modules for $QT_HOST $QT_ARCH Qt $QT_VER..."
+          python -m aqt list-qt "$QT_HOST" desktop --modules "$QT_VER" "$QT_ARCH" || true
+
+          # Cherche un nom valide pour Quick Controls (peut être 'qtquickcontrols2' ou 'qtquickcontrols')
+          QQC=""
+          if python -m aqt list-qt "$QT_HOST" desktop --modules "$QT_VER" "$QT_ARCH" | grep -q '^qtquickcontrols2$'; then
+            QQC=qtquickcontrols2
+          elif python -m aqt list-qt "$QT_HOST" desktop --modules "$QT_VER" "$QT_ARCH" | grep -q '^qtquickcontrols$'; then
+            QQC=qtquickcontrols
+          else
+            QQC=""
+          fi
+
+          # Qt5Compat (Core5Compat) n’est pas toujours listé ; on l’ajoute seulement s’il apparaît
+          QT5C=""
+          if python -m aqt list-qt "$QT_HOST" desktop --modules "$QT_VER" "$QT_ARCH" | grep -q '^qt5compat$'; then
+            QT5C=qt5compat
+          else
+            QT5C=""
+          fi
+
+          echo "QQC_MODULE=$QQC"   >> $GITHUB_ENV
+          echo "QT5C_MODULE=$QT5C" >> $GITHUB_ENV
+
+      # 2) Installer Qt : si des modules ont été détectés, on les passe ; sinon installation de base
+      - name: Install Qt (with detected modules)
+        if: env.QQC_MODULE != '' || env.QT5C_MODULE != ''
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.8.3'
-          target: 'desktop'
-          host: ${{ runner.os == 'Windows' && 'windows' || runner.os == 'macOS' && 'mac' || 'linux' }}
-          arch: ${{ runner.os == 'Windows' && 'win64_msvc2022_64' || runner.os == 'macOS' && 'clang_64' || 'linux_gcc_64' }}
-          modules: 'qtquickcontrols qt5compat'
-          cache: 'false'
+          version: ${{ env.QT_VER }}
+          target: desktop
+          host:   ${{ env.QT_HOST }}
+          arch:   ${{ env.QT_ARCH }}
+          modules: ${{ env.QQC_MODULE }} ${{ env.QT5C_MODULE }}
+          cache: true
 
+      - name: Install Qt (base only)
+        if: env.QQC_MODULE == '' && env.QT5C_MODULE == ''
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VER }}
+          target: desktop
+          host:   ${{ env.QT_HOST }}
+          arch:   ${{ env.QT_ARCH }}
+          cache: true
+
+      - name: Debug Qt
+        run: |
+          echo "QTDIR=$QTDIR"
+          which qmake || true
+          qmake -v || true
+
+      # 3) Configure/Build/Test ton projet (CMakeLists.txt dans Blockchain_desktop_PDG/)
       - name: Configure (CMake + Ninja)
         run: cmake -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }}
 
