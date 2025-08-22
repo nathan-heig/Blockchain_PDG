@@ -9,15 +9,23 @@ jobs:
   build-test:
     strategy:
       fail-fast: false
-      matrix: { os: [ubuntu-latest, macos-latest, windows-latest] }
+      matrix:
+        include:
+          - os: ubuntu-latest
+            host: linux
+            arch: linux_gcc_64
+          - os: macos-latest
+            host: mac
+            arch: clang_64
+          - os: windows-latest
+            host: windows
+            arch: win64_msvc2022_64
     runs-on: ${{ matrix.os }}
 
     env:
       BUILD_DIR: build
       CMAKE_BUILD_TYPE: Release
       QT_VER: 6.8.3
-      QT_HOST: ${{ runner.os == 'Windows' && 'windows' || runner.os == 'macOS' && 'mac' || 'linux' }}
-      QT_ARCH: ${{ runner.os == 'Windows' && 'win64_msvc2022_64' || runner.os == 'macOS' && 'clang_64' || 'linux_gcc_64' }}
 
     steps:
       - name: Checkout
@@ -27,54 +35,55 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
-      # 1) Lister les modules disponibles et choisir automatiquement les bons noms
-      - name: Discover available Qt modules (aqt)
+      # Python pour le petit script de détection des modules (aqt list-qt)
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Discover available Qt modules
+        id: detect
         run: |
-          python -m pip install --upgrade pip aqtinstall
-          echo "Listing modules for $QT_HOST $QT_ARCH Qt $QT_VER..."
-          python -m aqt list-qt "$QT_HOST" desktop --modules "$QT_VER" "$QT_ARCH" || true
+          python -m pip install --upgrade aqtinstall
+          python - << 'PY'
+          import os, subprocess, sys
+          host = "${{ matrix.host }}"
+          arch = "${{ matrix.arch }}"
+          ver  = os.environ["QT_VER"]
 
-          # Cherche un nom valide pour Quick Controls (peut être 'qtquickcontrols2' ou 'qtquickcontrols')
-          QQC=""
-          if python -m aqt list-qt "$QT_HOST" desktop --modules "$QT_VER" "$QT_ARCH" | grep -q '^qtquickcontrols2$'; then
-            QQC=qtquickcontrols2
-          elif python -m aqt list-qt "$QT_HOST" desktop --modules "$QT_VER" "$QT_ARCH" | grep -q '^qtquickcontrols$'; then
-            QQC=qtquickcontrols
-          else
-            QQC=""
-          fi
+          def listmods():
+              try:
+                  out = subprocess.check_output(
+                      [sys.executable, "-m", "aqt", "list-qt", host, "desktop", "--modules", ver, arch],
+                      text=True
+                  )
+                  return {line.strip() for line in out.splitlines() if line.strip()}
+              except Exception as e:
+                  print("Module listing failed:", e, file=sys.stderr)
+                  return set()
 
-          # Qt5Compat (Core5Compat) n’est pas toujours listé ; on l’ajoute seulement s’il apparaît
-          QT5C=""
-          if python -m aqt list-qt "$QT_HOST" desktop --modules "$QT_VER" "$QT_ARCH" | grep -q '^qt5compat$'; then
-            QT5C=qt5compat
-          else
-            QT5C=""
-          fi
+          mods = listmods()
+          wanted = []
+          for cand in ("qtquickcontrols2", "qtquickcontrols"):
+              if cand in mods:
+                  wanted.append(cand)
+                  break
+          if "qt5compat" in mods:
+              wanted.append("qt5compat")
 
-          echo "QQC_MODULE=$QQC"   >> $GITHUB_ENV
-          echo "QT5C_MODULE=$QT5C" >> $GITHUB_ENV
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"modules={' '.join(wanted)}\n")
+          print("Detected modules:", ' '.join(wanted) or "(none)")
+          PY
 
-      # 2) Installer Qt : si des modules ont été détectés, on les passe ; sinon installation de base
-      - name: Install Qt (with detected modules)
-        if: env.QQC_MODULE != '' || env.QT5C_MODULE != ''
+      - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VER }}
           target: desktop
-          host:   ${{ env.QT_HOST }}
-          arch:   ${{ env.QT_ARCH }}
-          modules: ${{ env.QQC_MODULE }} ${{ env.QT5C_MODULE }}
-          cache: true
-
-      - name: Install Qt (base only)
-        if: env.QQC_MODULE == '' && env.QT5C_MODULE == ''
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: ${{ env.QT_VER }}
-          target: desktop
-          host:   ${{ env.QT_HOST }}
-          arch:   ${{ env.QT_ARCH }}
+          host:   ${{ matrix.host }}
+          arch:   ${{ matrix.arch }}
+          modules: ${{ steps.detect.outputs.modules }}
           cache: true
 
       - name: Debug Qt
@@ -83,7 +92,6 @@ jobs:
           which qmake || true
           qmake -v || true
 
-      # 3) Configure/Build/Test ton projet (CMakeLists.txt dans Blockchain_desktop_PDG/)
       - name: Configure (CMake + Ninja)
         run: cmake -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }}
 
