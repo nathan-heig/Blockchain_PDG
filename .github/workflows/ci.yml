@@ -34,11 +34,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install aqtinstall
+        run: python -m pip install --upgrade aqtinstall
       - name: Discover available Qt modules
         id: detect
+        shell: python
         run: |
-          python -m pip install --upgrade aqtinstall
-          python - << 'PY'
           import os, subprocess, sys
           host = "${{ matrix.host }}"
           arch = "${{ matrix.arch }}"
@@ -86,10 +87,10 @@ jobs:
                   wanted.append(mod)
 
           modules_str = ' '.join(wanted)
-          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+          github_output = os.environ["GITHUB_OUTPUT"]
+          with open(github_output, "a") as f:
               f.write(f"modules={modules_str}\n")
           print(f"Selected modules: {modules_str or '(none)'}")
-          PY
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
@@ -99,7 +100,8 @@ jobs:
           arch:   ${{ matrix.arch }}
           modules: ${{ steps.detect.outputs.modules }}
           cache: true
-      - name: Debug Qt Installation
+      - name: Debug Qt Installation (Unix)
+        if: runner.os != 'Windows'
         run: |
           echo "QTDIR=$QTDIR"
           echo "Qt6_DIR=$Qt6_DIR"
@@ -115,6 +117,24 @@ jobs:
             ls -la "$Qt6_DIR/.." | grep Qt6 || true
           fi
         shell: bash
+      - name: Debug Qt Installation (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          echo "QTDIR=$env:QTDIR"
+          echo "Qt6_DIR=$env:Qt6_DIR"
+          where.exe qmake 2>$null || echo "qmake not in PATH"
+          qmake -v
+          echo "--- Checking for Core5Compat ---"
+          $qt6Core5CompatPath = Join-Path (Split-Path $env:Qt6_DIR) "Qt6Core5Compat"
+          if (Test-Path $qt6Core5CompatPath) {
+            echo "Qt6Core5Compat directory found at $qt6Core5CompatPath"
+            Get-ChildItem $qt6Core5CompatPath
+          } else {
+            echo "Qt6Core5Compat directory NOT found"
+            echo "Listing Qt6 cmake directories:"
+            Get-ChildItem (Split-Path $env:Qt6_DIR) -Filter "Qt6*" | Select-Object Name
+          }
+        shell: pwsh
       - name: Configure (CMake + Ninja)
         run: cmake -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }}
       - name: Build
