@@ -11,7 +11,6 @@ jobs:
   deploy:
     name: Deploy to Server
     runs-on: ubuntu-latest
-    needs: build
     steps:
       - name: Remote deploy (git pull + docker compose)
         uses: appleboy/ssh-action@v1.2.0
