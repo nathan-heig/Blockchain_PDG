@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    env:
+      BUILD_DIR: build
+      CMAKE_BUILD_TYPE: Release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC (Windows only)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.*'
+          cache: 'true'
+          archives: 'qtdeclarative qtquickcontrols2 qt5compat'
+
+      - name: Configure (CMake + Ninja)
+        run: cmake -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja \
+                   -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }}
+
+      - name: Build
+        run: cmake --build ${{ env.BUILD_DIR }} --parallel
+
+      - name: Test
+        run: ctest --test-dir ${{ env.BUILD_DIR }} --output-on-failure
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ runner.os }}
+          path: |
+            ${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG
+            ${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG.exe
+            ${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG.app
+          if-no-files-found: ignore
