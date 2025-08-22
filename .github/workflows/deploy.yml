@@ -60,9 +60,8 @@ jobs:
         uses: easingthemes/ssh-deploy@v5.1.0
         env:
           SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          SSH_CMD_ARGS: "-p 2222"
           ARGS: "-rltgoDzvO --delete"
           SOURCE: "out/"
-          REMOTE_HOST: ${{ secrets.DEPLOY_HOST }}
+          REMOTE_HOST: "${{ secrets.DEPLOY_HOST }}:2222"
           REMOTE_USER: ${{ secrets.DEPLOY_USER }}
           TARGET: ${{ secrets.DEPLOY_PATH }}/current
