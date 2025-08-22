@@ -1,6 +1,7 @@
 services:
   web:
-    image: caddy:2.7-alpine
+    build: .
+    image: vitrine-static:latest
     restart: unless-stopped
     ports:
       - "80:80"
@@ -9,8 +10,6 @@ services:
       DOMAIN: blockchaintest.duckdns.org
       EMAIL: nathanwu132001@gmail.com
     volumes:
-      # Artefacts statiques exportés par Next (synchro via CI dans ./current)
-      - ./current:/usr/share/caddy:ro
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
