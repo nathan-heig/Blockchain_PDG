@@ -42,7 +42,7 @@ export default function AboutPage() {
       {/* SECTION Notre projet */}
       <section className="max-w-5xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-10 items-center">
         <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
-          <Pickaxe className="h-12 w-12 mx-auto text-violet-400" />
+          <Pickaxe className="h-12 w-12 mx-auto text-emerald-400" />
           <p className="mt-4 text-slate-300">Un système de minage simple et accessible.</p>
         </div>
         <motion.div
