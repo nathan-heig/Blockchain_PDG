@@ -10,7 +10,7 @@ class Blockchain {
 private:
     std::vector<const Block> blocks;
     std::set<const Transaction, Transaction::CompareByFees> pendingTransactions;
-    std::unordered_map<PubKey, std::set<OutputReference>> UTXOs;
+    std::unordered_map<PubKey, std::set<OutputReference>> unspentOutputs;
 
 public:
     // Constructor

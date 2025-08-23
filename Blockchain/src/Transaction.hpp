@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <vector>
 #include <string>
-#include "Key.hpp"
+#include "key.hpp"
 
 class BlockChain; // Forward declaration to avoid circular dependency
 
