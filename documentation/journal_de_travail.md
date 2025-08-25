@@ -15,6 +15,7 @@ Aucun
 ### Besoins particuliers
 Aucun
 
+
 ## 20.08.25
 ### Travail réalisé la veille
 * Organistion (maquette site web + approfondissement conaissance QT)
@@ -29,6 +30,7 @@ Travail à distance
 Manque de conaissance DevOps
 ### Besoins particuliers
 Aucun
+
 
 ## 21.08.25
 ### Travail réalisé la veille
@@ -48,18 +50,29 @@ Aucun
 
 ## 22.08.25
 ### Travail réalisé la veille
+* Commencé à créer des actions github pour le site et l'app
+* Site en ligne
 ### Objectif de la journée
+* Finir les actions github pour qu'elles marchent
 ### Emplacement du groupe pour la journée
+Télétravail 
 ### Problèmes rencontrés la veille
+Aucun
 ### Besoins particuliers
+Aucun
 
 
 ## 25.08.25
-### Travail réalisé la veille
+### Travail réalisé vendredi
+* Les actions sont créées
 ### Objectif de la journée
+Présentation du travail de la première semaine
 ### Emplacement du groupe pour la journée
+HEIG
 ### Problèmes rencontrés la veille
+L'action d'intégration continue ne build pas l'application Qt sur Windows
 ### Besoins particuliers
+Aucun
 
 
 ## 26.08.25
