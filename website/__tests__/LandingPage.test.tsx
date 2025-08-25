@@ -1,31 +1,27 @@
 import { render, screen } from "@testing-library/react";
-import LandingPage from "../src/app/page";
+import LandingPage from "../src/app/page"; // ← ajuste le chemin si pas de dossier src/
 
-// 1. Smoke test
-test("smoke: la page se rend et affiche le titre principal", () => {
-  render(<LandingPage />);
-  // Utilise role pour robustesse
-  const heading = screen.getByRole('heading', { level: 1, name: /skbc blockchain/i });
-  expect(heading).toBeInTheDocument();
-});
+describe("Landing page", () => {
+  test("smoke: le H1 'SKBC BLOCKCHAIN' est présent", () => {
+    render(<LandingPage />);
+    const h1 = screen.getByRole("heading", { level: 1, name: /SKBC BLOCKCHAIN/i });
+    expect(h1).toBeInTheDocument();
+  });
 
-// 2. Vérifie que les sections principales existent
-test("la page contient HERO, Stats et Footer", () => {
-  render(<LandingPage />);
-  // HERO
-  expect(screen.getByRole('heading', { level: 1, name: /skbc blockchain/i })).toBeInTheDocument();
-  // Stats (case-insensitive)
-  expect(screen.getByText(/stats/i)).toBeInTheDocument();
-  // Footer
-  expect(screen.getByRole('contentinfo')).toBeInTheDocument();
-});
+  test("la section Stats est visible et le footer est présent", () => {
+    render(<LandingPage />);
+    expect(screen.getByText(/stats/i)).toBeInTheDocument();
+    expect(screen.getByRole("contentinfo")).toBeInTheDocument(); // footer
+  });
 
-// 3. Vérifie le lien de téléchargement
-test("le lien de téléchargement existe et pointe vers le bon ZIP", () => {
-  render(<LandingPage />);
-  const downloadLink = screen.getByRole('link', { name: /télécharger l’app/i });
-  expect(downloadLink).toBeInTheDocument();
-  expect(downloadLink).toHaveAttribute('href', expect.stringMatching(/\.zip$/));
+  test("les boutons de CTA pointent vers /download et /about", () => {
+    render(<LandingPage />);
+    const dl = screen.getByRole("link", { name: /télécharger l’app/i });
+    expect(dl).toHaveAttribute("href", "/download");
+
+    const about = screen.getByRole("link", { name: /en savoir plus/i });
+    expect(about).toHaveAttribute("href", "/about");
+  });
 });
 
 // En cas de futur échec, on peut facilement activer un debug:
