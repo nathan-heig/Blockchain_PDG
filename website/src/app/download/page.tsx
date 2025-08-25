@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Download} from "lucide-react";
 
 // Détection simple de l'OS pour afficher "Recommandé"
 function useOs() {
@@ -51,13 +50,6 @@ export default function DownloadPage() {
     ],
     []
   );
-
-  // Map pour le bouton "Télécharger pour mon OS"
-  const directMap: Record<string, string> = {
-    windows: "/downloads/MonApp-Setup-x64.exe",
-    mac: "/downloads/MonApp.dmg",
-    linux: "/downloads/MonApp-x86_64.AppImage",
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
