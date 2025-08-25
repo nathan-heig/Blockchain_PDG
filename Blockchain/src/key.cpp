@@ -43,40 +43,40 @@ namespace key{
         BIO_free(bio);
     }
 
-    const Signature signData(const std::string& data, const std::string& privateKeyFile) {
-        // Load private key
-        FILE* pkeyFile = fopen(privateKeyFile.c_str(), "r");
-        if (!pkeyFile) {
+    EVP_PKEY* getPrivateKey(const std::string& privateKeyFile) {
+        BIO* bio = BIO_new_file(privateKeyFile.c_str(), "r");
+        if (!bio) {
             throw std::runtime_error("Failed to open private key file");
         }
 
-        EVP_PKEY* pkey = PEM_read_PrivateKey(pkeyFile, NULL, NULL, NULL);
-        fclose(pkeyFile);
+        EVP_PKEY* pkey = PEM_read_bio_PrivateKey(bio, NULL, NULL, NULL);
+        BIO_free(bio);
         if (!pkey) {
             throw std::runtime_error("Failed to read private key");
         }
 
+        return pkey;
+    }
+
+    Signature signData(const std::string& data, EVP_PKEY* pkey) {
+        if (!pkey) {
+            throw std::runtime_error("Invalid private key");
+        }
         // Create signature context
         EVP_MD_CTX* ctx = EVP_MD_CTX_new();
         if (!ctx) {
-            EVP_PKEY_free(pkey);
             throw std::runtime_error("Failed to create EVP_MD_CTX");
         }
-
         // Initialize signing context
         if (EVP_DigestSignInit(ctx, NULL, EVP_sha256(), NULL, pkey) != 1) {
             EVP_MD_CTX_free(ctx);
-            EVP_PKEY_free(pkey);
             throw std::runtime_error("Failed to initialize signing context");
         }
-
         // Add data to sign
         if (EVP_DigestSignUpdate(ctx, data.c_str(), data.size()) != 1) {
             EVP_MD_CTX_free(ctx);
-            EVP_PKEY_free(pkey);
             throw std::runtime_error("Failed to add data to sign");
         }
-
         // Get required buffer size
         size_t signatureLen;
         if (EVP_DigestSignFinal(ctx, NULL, &signatureLen) != 1) {
@@ -102,12 +102,12 @@ namespace key{
         // Resize vector to actual size of signature
         signature.resize(signatureLen);
 
-        Signature signatureStr(signature.begin(), signature.end());
+        std::string signatureStr(signature.begin(), signature.end());
 
         return signatureStr;
     }
 
-    const std::string getPubKey(const EVP_PKEY* pkey) {
+    const PubKey getPubKey(const EVP_PKEY* pkey) {
         if (!pkey) {
             throw std::runtime_error("Invalid EVP_PKEY");
         }
@@ -134,7 +134,7 @@ namespace key{
         return pubKeyStr;
     }
 
-    bool verifySignature(const std::string& data, const std::string& signature, const std::string& pubKey) {
+    bool verifySignature(const std::string& data, const Signature& signature, const PubKey& pubKey) {
         // Load public key
         BIO* bio = BIO_new_mem_buf(pubKey.data(), pubKey.size());
         EVP_PKEY* pkey = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);

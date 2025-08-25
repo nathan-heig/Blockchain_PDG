@@ -6,7 +6,6 @@
 
 using PubKey = std::string;
 using Signature = std::string;
-using Signatures = std::vector<Signature>;
 
 
 #include <stdexcept>
@@ -23,10 +22,12 @@ using Signatures = std::vector<Signature>;
 namespace key{
 
     EVP_PKEY* createPrivateKey();
-    const Signature signData(const std::string& transaction, const std::string& privateKeyFile);
+    EVP_PKEY* getPrivateKey(const std::string& privateKeyFile);
     const PubKey getPubKey(const EVP_PKEY* pkey);
     void savePrivateKey(EVP_PKEY* pkey, const std::string& filename);
-    bool verifySignature(const std::string& data, const std::string& signature, const std::string& pubKey);
-
+    
+    Signature signData(const std::string& transaction, EVP_PKEY* pkey);
+    bool verifySignature(const std::string& data, const Signature& signature, const PubKey& pubKey);
+    
 }
 #endif // KEY_HPP

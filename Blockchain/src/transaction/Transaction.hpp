@@ -8,7 +8,7 @@
 #include <string>
 #include "key.hpp"
 
-class BlockChain; // Forward declaration to avoid circular dependency
+class Blockchain; // Forward declaration to avoid circular dependency
 
 class Output {
 private:
@@ -36,15 +36,20 @@ private:
     uint16_t outputIndex;
 
 public:
+    //Constructor
     OutputReference(uint32_t blockIdx, uint16_t txIdx, uint16_t outIdx)
         : blockIndex(blockIdx), txIndex(txIdx), outputIndex(outIdx) {}
     
+
+    //Comparison operator
     bool operator<(const OutputReference& other) const {
         return std::tie(blockIndex, txIndex, outputIndex) < std::tie(other.blockIndex, other.txIndex, other.outputIndex);
     }
 
-    const Output& getOutput(const BlockChain& blockchain) const;
+    //Getters
+    const Output& getOutput(const Blockchain& blockchain) const;
 
+    //String representation
     const std::string toString() const {
         std::ostringstream oss;
         oss << "Block: " << blockIndex << ", Tx: " << txIndex << ", Out: " << outputIndex;
@@ -52,58 +57,29 @@ public:
     }
 };
 
-class UnsignedTransaction {
+class Transaction {
 private:
     const std::vector<OutputReference> inputs;
     const std::vector<Output> outputs;
+    Signature signature;
 
 public:
-    UnsignedTransaction(const std::vector<OutputReference>&& inputs,
+    //Constructor
+    Transaction(const std::vector<OutputReference>&& inputs,
                         const std::vector<Output>&& outputs)
-        : inputs(std::move(inputs)), outputs(std::move(outputs)) {}
+        : inputs(std::move(inputs)), outputs(std::move(outputs)), signature() {}
 
+    
+    //Getters
     const std::vector<OutputReference>& getInputs() const { return inputs; }
     const std::vector<Output>& getOutputs() const { return outputs; }
+    const double getFee(const Blockchain& blockchain) const;
+    const std::string getStrToSign() const;
 
-    const std::string toString() const {
-        std::ostringstream oss;
-        oss << "Inputs:\n";
-        for (const auto& input : inputs) {
-            oss << "  " << input.toString() << "\n";
-        }
-        oss << "Outputs:\n";
-        for (const auto& output : outputs) {
-            oss << "  " << output.toString() << "\n";
-        }
-        return oss.str();
-    }
-
-    const double getFee() const {
-        double inputSum = 0.0;
-        double outputSum = 0.0;
-        for (const auto& output : outputs) {
-            outputSum += output.getValue();
-        }
-        return inputSum - outputSum;
-    }
+    //Signature methods
+    void sign(EVP_PKEY* privateKey) {signature = key::signData(this->getStrToSign(), privateKey);}
+    bool verify(const Blockchain& blockchain) const;
 };
 
-class Transaction : public UnsignedTransaction {
-private:
-    Signatures signatures;
-
-public:
-    Transaction(const UnsignedTransaction&& utx, const Signatures&& sigs)
-        : UnsignedTransaction(std::move(utx)), signatures(std::move(sigs)) {}
-
-    const Signatures& getSignatures() const { return signatures; }
-
-    struct CompareByFees {
-        bool operator()(const Transaction& a, const Transaction& b) const {
-            return a.getFee() < b.getFee();
-        }
-    };
-
-};
 
 #endif // TRANSACTION_HPP
