@@ -77,11 +77,15 @@ Aucun
 
 ## 26.08.25
 ### Travail réalisé la veille
+* Mise en place de la présentation. Réorganisation de code et ajout des artifacts multi-OS.
 ### Objectif de la journée
+Avancer le design de l'app desktop. Implémentation des transactions dans le backend 
 ### Emplacement du groupe pour la journée
+Télétravail
 ### Problèmes rencontrés la veille
+Aucun
 ### Besoins particuliers
-
+Aucun
 
 ## 27.08.25
 ### Travail réalisé la veille
