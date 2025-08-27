@@ -17,8 +17,8 @@ Object.defineProperty(window, "matchMedia", {
 
 /* ResizeObserver (utilisé par le composant) */
 class ResizeObserverMock {
-  observe(_target?: Element): void {}
-  unobserve(_target?: Element): void {}
+  observe(): void {}
+  unobserve(): void {}
   disconnect(): void {}
 }
 Object.defineProperty(globalThis, "ResizeObserver", {
@@ -51,3 +51,6 @@ afterEach(() => {
   localStorage.clear();
   jest.restoreAllMocks();
 });
+
+// Assure que ce fichier est traité comme un module
+export {};

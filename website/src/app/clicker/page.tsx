@@ -1,7 +1,14 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { flushSync } from "react-dom";
 
 /* ================== CONFIG IMAGES ================== */
@@ -58,8 +65,16 @@ const GearIcon = ({ className = "" }: { className?: string }) => (
 /* ============ Icônes (upgrades + trophée) ============ */
 const DEFAULT_UPGRADE_ICON_DIR = "/clicker";
 
-function UpgradeIconGraphic({ u, className = "", size = 32, alt }: { 
-  u: Upgrade; className?: string; size?: number; alt?: string 
+function UpgradeIconGraphic({
+  u,
+  className = "",
+  size = 32,
+  alt,
+}: {
+  u: Upgrade;
+  className?: string;
+  size?: number;
+  alt?: string;
 }) {
   const [failed, setFailed] = React.useState(false);
 
@@ -67,16 +82,13 @@ function UpgradeIconGraphic({ u, className = "", size = 32, alt }: {
 
   if (!failed) {
     return (
-      <img
+      <Image
         src={src}
         alt={alt ?? u.name}
         className={className}
         width={size}
         height={size}
         draggable={false}
-        loading="lazy"
-        decoding="async"
-        style={{ objectFit: "contain" }}
         onError={() => setFailed(true)}
       />
     );
@@ -101,16 +113,13 @@ function TrophyIconGraphic({
   const [failed, setFailed] = React.useState(false);
   if (TROPHY_SVG && !failed) {
     return (
-      <img
+      <Image
         src={TROPHY_SVG}
         alt={alt}
         className={className}
         width={size}
         height={size}
         draggable={false}
-        loading="lazy"
-        decoding="async"
-        style={{ objectFit: "contain" }}
         onError={() => setFailed(true)}
       />
     );
@@ -140,16 +149,13 @@ function AchievementIconGraphic({
   const [failed, setFailed] = React.useState(false);
   if (iconUrl && !failed) {
     return (
-      <img
+      <Image
         src={iconUrl}
         alt={alt}
         className={className}
         width={size}
         height={size}
         draggable={false}
-        loading="lazy"
-        decoding="async"
-        style={{ objectFit: "contain" }}
         onError={() => setFailed(true)}
       />
     );
@@ -209,12 +215,15 @@ function CoinVisual({
 }) {
   if (COIN_IMG)
     return (
-      <img
+      <Image
         src={COIN_IMG}
         alt={alt}
         className={className}
         style={style}
+        width={320}
+        height={320}
         draggable={false}
+        priority
       />
     );
   return <SkbcCoin className={className} style={style} />;
@@ -225,7 +234,14 @@ function CoinInline({
   className?: string;
 }) {
   return (
-    <img src={COIN_IMG} alt="SKBC" className={className} draggable={false} />
+    <Image
+      src={COIN_IMG}
+      alt="SKBC"
+      className={className}
+      width={16}
+      height={16}
+      draggable={false}
+    />
   );
 }
 
@@ -286,16 +302,13 @@ function BuildingIconGraphic({
 }) {
   if (b.iconUrl) {
     return (
-      <img
+      <Image
         src={b.iconUrl}
         alt={alt ?? b.name}
         className={className}
         width={size}
         height={size}
         draggable={false}
-        loading="lazy"
-        decoding="async"
-        style={{ objectFit: "contain" }}
       />
     );
   }
@@ -315,7 +328,7 @@ const BUILDINGS: Building[] = [
     id: "cursor",
     name: "Curseur",
     baseCost: 20,
-    baseCps: 0.1, 
+    baseCps: 0.1,
     emoji: "🖱️",
     flavor: "Clique pour toi, paresseusement.",
     iconUrl: "/clicker/buildings/cursor.png",
@@ -409,7 +422,7 @@ const BUILDINGS: Building[] = [
     emoji: "⚛️",
     flavor: "Qubits au service du hash.",
     iconUrl: "/clicker/buildings/quantum.png",
-  }
+  },
 ];
 
 /* ============ Améliorations ============ */
@@ -620,7 +633,10 @@ const UPGRADES: Upgrade[] = [
     available: (s) => (s.buildings["quantum"] ?? 0) >= 2,
     apply: (s) => ({
       ...s,
-      multipliers: { ...s.multipliers, quantum: (s.multipliers.quantum ?? 1) * 2 },
+      multipliers: {
+        ...s.multipliers,
+        quantum: (s.multipliers.quantum ?? 1) * 2,
+      },
     }),
     unlockHint: "Possède 2 Calculateurs quantiques",
     kind: "mult-building",
@@ -1133,10 +1149,7 @@ export default function ClickerPage() {
   };
 
   // CPS
-  const cps = useMemo(
-    () => totalCps(state),
-    [state.buildings, state.multipliers, state.globalMult]
-  );
+  const cps = useMemo(() => totalCps(state), [state]);
   const effectiveCps = cps * boostMult;
 
   // Rattrapage off-tab
@@ -1153,6 +1166,32 @@ export default function ClickerPage() {
         }));
     }
   }, []);
+
+  // --- Snapshot builders stabilisés (évite warnings exhaustive-deps) ---
+  const buildSnapshot = useCallback((): SaveShape => {
+    const cur = stateRef.current;
+    const ups = upgradesRef.current;
+    const acs = achsRef.current;
+    return {
+      state: cur,
+      upgrades: ups.map((u) => ({ id: u.id, taken: !!u.taken })),
+      achs: acs.map((a) => ({ id: a.id, unlocked: !!a.unlocked })),
+    };
+  }, []);
+
+  const saveSnapshot = useCallback(() => {
+    if (skipSaveRef.current) return;
+    const bst = boostRef.current;
+    const payload = buildSnapshot();
+    saveNow(payload);
+    localStorage.setItem(LAST_TICK_KEY, String(Date.now()));
+    localStorage.setItem(
+      LAST_CPS_KEY,
+      String(totalCps(payload.state) * (bst.active ? bst.mult : 1))
+    );
+    localStorage.setItem(BOOST_UNTIL_KEY, String(bst.until || 0));
+    localStorage.setItem(BOOST_MULT_KEY, String(bst.mult || 1));
+  }, [buildSnapshot]);
 
   // boucle CPS
   useEffect(() => {
@@ -1196,42 +1235,19 @@ export default function ClickerPage() {
   }, [state, achs, upgrades]);
 
   /* ===== Sauvegarde “normale” ===== */
-  const buildSnapshot = (): SaveShape => {
-    const cur = stateRef.current;
-    const ups = upgradesRef.current;
-    const acs = achsRef.current;
-    return {
-      state: cur,
-      upgrades: ups.map((u) => ({ id: u.id, taken: !!u.taken })),
-      achs: acs.map((a) => ({ id: a.id, unlocked: !!a.unlocked })),
-    };
-  };
-  const saveSnapshot = () => {
-    if (skipSaveRef.current) return;
-    const bst = boostRef.current;
-    const payload = buildSnapshot();
-    saveNow(payload);
-    localStorage.setItem(LAST_TICK_KEY, String(Date.now()));
-    localStorage.setItem(
-      LAST_CPS_KEY,
-      String(totalCps(payload.state) * (bst.active ? bst.mult : 1))
-    );
-    localStorage.setItem(BOOST_UNTIL_KEY, String(bst.until || 0));
-    localStorage.setItem(BOOST_MULT_KEY, String(bst.mult || 1));
-  };
 
   // périodique
   useEffect(() => {
     if (!hydrated) return;
     const tick = setInterval(saveSnapshot, 2000);
     return () => clearInterval(tick);
-  }, [hydrated]);
+  }, [hydrated, saveSnapshot]);
 
   // à chaque changement
   useEffect(() => {
     if (!mountedRef.current || !hydrated || skipSaveRef.current) return;
     saveSnapshot();
-  }, [hydrated, state, upgrades, achs, boost]);
+  }, [hydrated, state, upgrades, achs, boost, saveSnapshot]);
 
   // events navigation / perte focus
   useEffect(() => {
@@ -1257,7 +1273,7 @@ export default function ClickerPage() {
       window.removeEventListener("popstate", onPopState);
       if (!skipSaveRef.current) saveSnapshot();
     };
-  }, []);
+  }, [saveSnapshot]);
 
   // Sauvegarder avant navigation interne
   useEffect(() => {
@@ -1442,11 +1458,13 @@ export default function ClickerPage() {
           aria-label={`Collecter le boost ×${bonusCoin.kind === "x5" ? 5 : 2}`}
           title={`Boost ×${bonusCoin.kind === "x5" ? 5 : 2} pendant 15s`}
         >
-          <img
+          <Image
             src={bonusCoin.kind === "x5" ? BONUS_X5_IMG : BONUS_X2_IMG}
             className="w-12"
             alt={`Bonus ×${bonusCoin.kind === "x5" ? 5 : 2}`}
             draggable={false}
+            width={48}
+            height={48}
           />
         </button>
       )}
@@ -1474,9 +1492,13 @@ export default function ClickerPage() {
                       filter: "blur(1px)",
                     }}
                   >
-                    <CoinVisual
-                      style={{ width: c.size, height: c.size }}
+                    <Image
+                      src={COIN_IMG}
+                      alt="Pièce SKBC"
                       className="drop-shadow-[0_6px_14px_rgba(0,0,0,.35)]"
+                      width={Math.round(c.size)}
+                      height={Math.round(c.size)}
+                      draggable={false}
                     />
                   </div>
                 ))}
@@ -1675,10 +1697,12 @@ export default function ClickerPage() {
                       {/* icône */}
                       <div className="w-12 h-12 flex items-center justify-center select-none">
                         {unlocked ? (
-                          <img
-                            src={b.iconUrl}
+                          <Image
+                            src={b.iconUrl || "/clicker/placeholder.png"}
                             alt={b.name}
                             className="w-full h-full object-contain"
+                            width={48}
+                            height={48}
                             draggable={false}
                           />
                         ) : (
