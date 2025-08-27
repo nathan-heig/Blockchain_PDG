@@ -19,7 +19,7 @@ const formatHashrate = (h?: number | null) => {
   return `${v.toFixed(2)} ${units[i]}`;
 };
 
-// --- Données en dur (modifie ici quand tu veux) ---
+// --- Données en dur ---
 type Stats = {
   minersActive: number;
   networkHashrate: number;
@@ -54,7 +54,7 @@ export default function LandingPage() {
         </h1>
 
         <div className="relative max-w-6xl mx-auto px-6 mt-10">
-          <div className="absolute inset-x-0 top-12 mx-auto h-56 sm:h-64 md:h-72 lg:h-80 max-w-5xl rounded-[2.5rem] bg-slate-400/20 blur-[1px]" />
+          <div className="absolute inset-x-0 top-12 mx-auto h-56 sm:h-64 md:h-72 lg:h-80 max-w-5xl rounded-[2.5rem] bg-slate-600/20 blur-[1px]" />
 
           {/* “Tablette” */}
           <motion.div
@@ -77,7 +77,7 @@ export default function LandingPage() {
               <div className="col-span-12 md:col-span-6 p-8 sm:p-10">
                 <div className="flex flex-col items-center text-center">
                   <div className="w-8 h-8 rounded-full bg-white/10 grid place-items-center border border-white/20 mb-4">
-                    <Shield className="h-4 w-4 text-slate-300" />
+                    <Shield className="h-4 w-4 text-emerald-300" />
                   </div>
                   <div className="text-sm text-slate-400">Available Balance</div>
                   <div className="mt-1 text-4xl font-bold">
@@ -86,14 +86,14 @@ export default function LandingPage() {
                   <div className="text-xs text-slate-300 mt-1">SKBC</div>
 
                   <div className="mt-6 w-full max-w-md mx-auto">
-                    <div className="rounded-xl bg-slate-500/15 border border-slate-400/30 text-slate-300 px-4 py-2 text-sm">
+                    <div className="rounded-xl bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 px-4 py-2 text-sm">
                       Mining en cours…
                     </div>
                   </div>
 
                   <div className="mt-6 flex gap-4">
-                    <button className="rounded-xl px-5 py-2 bg-slate-500/90 text-white font-medium">Send</button>
-                    <button className="rounded-xl px-5 py-2 bg-slate-500/20 text-slate-500 border border-slate-500/40 font-medium">
+                    <button className="rounded-xl px-5 py-2 bg-white/10 px-5 py-3 font-medium text-slate-100 border border-white/10">Send</button>
+                    <button className="rounded-xl px-5 py-2 bg-slate-700/20 text-slate-500 border border-white/10 font-medium">
                       Receive
                     </button>
                   </div>
@@ -124,6 +124,12 @@ export default function LandingPage() {
             className="inline-flex items-center gap-2 rounded-xl border border-white/15 hover:bg-white/5 px-5 py-3 font-medium text-slate-200"
           >
             En savoir plus
+          </Link>
+          <Link
+            href="/clicker"
+            className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 px-5 py-3 font-medium text-slate-100 border border-white/10"
+          >
+            Jouer au SKBC Clicker
           </Link>
         </div>
       </section>
