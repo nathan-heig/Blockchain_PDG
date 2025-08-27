@@ -579,7 +579,7 @@ const UPGRADES: Upgrade[] = [
       ...s,
       multipliers: { ...s.multipliers, farm: (s.multipliers.farm ?? 1) * 2 },
     }),
-    unlockHint: "Possède 5 Fermes",
+    unlockHint: "Possède 5 Usines",
     kind: "mult-building",
     targetId: "farm",
   },
