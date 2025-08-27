@@ -12,8 +12,8 @@ class Blockchain; // Forward declaration to avoid circular dependency
 
 class Output {
 private:
-    double value;
-    PubKey pubKey;
+    const double value;
+    const PubKey pubKey;
 
 public:
     Output(double value, const PubKey& pubKey)
@@ -31,9 +31,9 @@ public:
 
 class OutputReference {
 private:
-    uint32_t blockIndex;
-    uint16_t txIndex;
-    uint16_t outputIndex;
+    const uint32_t blockIndex;
+    const uint16_t txIndex;
+    const uint16_t outputIndex;
 
 public:
     //Constructor
@@ -45,6 +45,7 @@ public:
     bool operator<(const OutputReference& other) const {
         return std::tie(blockIndex, txIndex, outputIndex) < std::tie(other.blockIndex, other.txIndex, other.outputIndex);
     }
+
 
     //Getters
     const Output& getOutput(const Blockchain& blockchain) const;
@@ -60,8 +61,8 @@ public:
 
 class Transaction {
 private:
-    const std::vector<OutputReference> inputs;
-    const std::vector<Output> outputs;
+    const std::vector<const OutputReference> inputs;
+    const std::vector<const Output> outputs;
     Signature signature;
 
     //Verification methods
@@ -76,8 +77,8 @@ private:
 
 public:
     //Constructor
-    Transaction(const std::vector<OutputReference>&& inputs,
-                        const std::vector<Output>&& outputs)
+    Transaction(const std::vector<const OutputReference>&& inputs,
+                        const std::vector<const Output>&& outputs)
         : inputs(std::move(inputs)), outputs(std::move(outputs)), signature() {}
 
     /*Crééer une transaction de récompense de minage*/
@@ -87,8 +88,8 @@ public:
     }
 
     //Getters
-    const std::vector<OutputReference>& getInputs() const { return inputs; }
-    const std::vector<Output>& getOutputs() const { return outputs; }
+    const std::vector<const OutputReference>& getInputs() const { return inputs; }
+    const std::vector<const Output>& getOutputs() const { return outputs; }
     const double getFee(const Blockchain& blockchain) const;
     const std::string getStrToSign() const;
 

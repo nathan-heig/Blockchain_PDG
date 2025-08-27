@@ -4,13 +4,15 @@
 
 #include "Transaction.hpp"
 
+class Blockchain;
+
 class Block {
 private:
     // Attributs
     uint32_t index;
     uint32_t nonce;
 
-    uint32_t timestamp;
+    time_t timestamp;
     uint8_t target;
     std::vector<const Transaction> transactions;
     Hash previousHash;
@@ -20,13 +22,13 @@ private:
 
     // Fonctions
     Hash calculateHash() const;
+    const bool hashMatchesDifficulty() const;
 
 public:
 
     // Constructors
     Block(){}
-    Block(uint32_t idx, uint32_t time, uint8_t tgt, const Hash& prevHash, std::vector<const Transaction>&& txs)
-        : index(idx), nonce(0), timestamp(time), target(tgt), transactions(std::move(txs)), previousHash(prevHash), hash() {}
+    static Block createBlock(const Blockchain& blockchain, const PubKey& minerPubKey);
 
     // Operators
     const Transaction& operator[](const size_t i) const {return transactions[i];}
@@ -38,6 +40,7 @@ public:
     const Hash& getPreviousHash() const { return previousHash; }
     const Hash& getHash() const { return hash; }
     const std::vector<const Transaction>& getTransactions() const {return transactions;}
+
 };
 
 #endif //BLOCKCHAIN_CLASS_HPP
