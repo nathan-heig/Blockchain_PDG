@@ -6,6 +6,7 @@
 
 using PubKey = std::string;
 using Signature = std::string;
+using Hash = std::string;
 
 
 #include <stdexcept>

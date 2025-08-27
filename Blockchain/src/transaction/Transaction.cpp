@@ -31,17 +31,45 @@ const std::string Transaction::getStrToSign() const {
         return oss.str();
     }
 
-bool Transaction::verify(const Blockchain& blockchain) const {
-    if (this->inputs.size() >= 256 or this->outputs.size() >= 256 or signature.empty()) {
-        return false;
+
+const bool Transaction::verifyInputs(const Blockchain& blockchain) const {
+    if (inputs.size() > 100 or inputs.empty()){
+        return false; // A transaction must have at least one input and no more than 100
     }
 
-    PubKey pubKey = this->inputs[0].getOutput(blockchain).getPubKey();
-    for (const auto& input : inputs) {
-        if (input.getOutput(blockchain).getPubKey() != pubKey) {
-            return false; // All inputs must come from the same public key
+    const PubKey pubKey = this->inputs[0].getOutput(blockchain).getPubKey();
+    for(const auto& input : inputs) {
+        const Output& out = input.getOutput(blockchain);
+        if (out.getValue() <= 0) {
+            return false; // Output value must be positive
+        }
+        if (out.getPubKey() != pubKey) {
+            return false; // All inputs must be from the same owner
+        }
+        if (blockchain.getUnspentOutputReferences().at(pubKey).find(input) == blockchain.getUnspentOutputReferences().at(pubKey).end()) {
+            return false; // Input must be unspent
         }
     }
+    return true;
+}
 
-    return key::verifySignature(this->getStrToSign(), signature, pubKey);
+const bool Transaction::verifyOutputs() const {
+    if (outputs.size() > 100 or outputs.empty()){
+        return false; // A transaction must have at least one output and no more than 100
+    }
+
+    for (const auto& output : outputs) {
+        if (output.getValue() <= 0) {
+            return false; // Output value must be positive
+        }
+    }
+    return true;
+}
+
+const bool Transaction::verify(const Blockchain& blockchain) const {
+    return verifyInputs(blockchain) && verifyOutputs() && verifySold(blockchain) && verifySignature(blockchain);
+}
+
+const bool Transaction::verifyMiningReward(const Blockchain& blockchain, uint32_t blockIndex) const {
+    return this->outputs.size() == 1 and this->inputs.empty() and this->outputs[0].getValue() == blockchain.getMiningRewardAt(blockIndex);
 }

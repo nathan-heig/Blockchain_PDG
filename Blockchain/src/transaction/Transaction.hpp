@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <vector>
 #include <string>
-#include "key.hpp"
+#include "cryptography/key.hpp"
 
 class Blockchain; // Forward declaration to avoid circular dependency
 
@@ -19,7 +19,7 @@ public:
     Output(double value, const PubKey& pubKey)
         : value(value), pubKey(pubKey) {}
 
-    double getValue() const { return value; }
+    const double getValue() const { return value; }
     const PubKey& getPubKey() const { return pubKey; }
 
     const std::string toString() const {
@@ -55,6 +55,7 @@ public:
         oss << "Block: " << blockIndex << ", Tx: " << txIndex << ", Out: " << outputIndex;
         return oss.str();
     }
+
 };
 
 class Transaction {
@@ -63,13 +64,28 @@ private:
     const std::vector<Output> outputs;
     Signature signature;
 
+    //Verification methods
+    /*Vérifie les entrées de la transaction*/
+    const bool verifyInputs(const Blockchain& blockchain) const;
+    /*Vérifie les sorties de la transaction*/
+    const bool verifyOutputs() const;
+    /*Vérifie que la transaction est solvable*/
+    const bool verifySold(const Blockchain& blockchain) const {return this->getFee(blockchain) >= 0;}
+    /*Vérifie la signature de la transaction*/
+    const bool verifySignature(const Blockchain& blockchain) const {return key::verifySignature(this->getStrToSign(), signature, this->inputs[0].getOutput(blockchain).getPubKey());}
+
 public:
     //Constructor
     Transaction(const std::vector<OutputReference>&& inputs,
                         const std::vector<Output>&& outputs)
         : inputs(std::move(inputs)), outputs(std::move(outputs)), signature() {}
 
-    
+    /*Crééer une transaction de récompense de minage*/
+    static const Transaction miningReward(const PubKey& minerPubKey, const double reward) {
+        Output rewardOutput(reward, minerPubKey);
+        return Transaction({}, {rewardOutput});
+    }
+
     //Getters
     const std::vector<OutputReference>& getInputs() const { return inputs; }
     const std::vector<Output>& getOutputs() const { return outputs; }
@@ -78,7 +94,11 @@ public:
 
     //Signature methods
     void sign(EVP_PKEY* privateKey) {signature = key::signData(this->getStrToSign(), privateKey);}
-    bool verify(const Blockchain& blockchain) const;
+
+    /*Vérifie la validité de la transaction et ne valide pas une récompense de minage*/
+    const bool verify(const Blockchain& blockchain) const;
+    /*Vérifie une récompense de minage*/
+    const bool verifyMiningReward(const Blockchain& blockchain, uint32_t blockIndex) const;
 };
 
 
