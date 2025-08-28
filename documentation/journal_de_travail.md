@@ -87,27 +87,40 @@ Aucun
 ### Besoins particuliers
 Aucun
 
+
 ## 27.08.25
 ### Travail réalisé la veille
+* Avancement du backend
 ### Objectif de la journée
+* Code backend
 ### Emplacement du groupe pour la journée
+Télétravail
 ### Problèmes rencontrés la veille
+Complications lors de l'implémentation des transactions dans le backend
 ### Besoins particuliers
+Aucun
 
 
 ## 28.08.25
 ### Travail réalisé la veille
+* Avancement du backend
 ### Objectif de la journée
+* Code backend
+* Tests
 ### Emplacement du groupe pour la journée
+Télétravail
 ### Problèmes rencontrés la veille
+Aucun
 ### Besoins particuliers
-
+Aucun
 
 ## 29.08.25
 ### Travail réalisé la veille
+* Avancement du backend
 ### Objectif de la journée
 ### Emplacement du groupe pour la journée
 ### Problèmes rencontrés la veille
+Les tests sont difficile à conceptualiser
 ### Besoins particuliers
 
 
