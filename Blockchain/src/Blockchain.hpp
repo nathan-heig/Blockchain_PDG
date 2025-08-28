@@ -28,7 +28,7 @@ public:
 
     // Getters
     /*Retourne un object Transactions prêt a etre ajouté dans un bloc*/
-    const BlockTransactions& getNewBlockTransactions(const PubKey& minerPubKey) const {return BlockTransactions(*this, pendingTransactions, minerPubKey);}
+    const BlockTransactions getNewBlockTransactions(const PubKey& minerPubKey) const {return BlockTransactions(*this, pendingTransactions, minerPubKey);}
     /*Retourne le mining reward a un index donné*/
     static const double getMiningRewardAt(uint32_t index);
     /*Retourne la difficulté à un index donné en se basent sur le temps des blocks precedants l'index*/
@@ -39,6 +39,7 @@ public:
     //Operators
     /*Retourne une référence constante sur le bloc à l'index donné*/
     const Block& operator[](const size_t index) const {return blocks[index];}
+    bool operator>(const Blockchain& other) const {return blocks.size() > other.size();}
 
     //Setters
     /*Vérifie si le bloc est valide avant de l'ajouter à la blockchain et modifie la liste des sorties non dépensées*/

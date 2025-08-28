@@ -8,7 +8,9 @@
 #include <string>
 #include "cryptography/crypto.hpp"
 
-class Blockchain; // Forward declaration to avoid circular dependency
+class Blockchain;
+class Block;
+class UTXOs;
 
 
 /*Cette classe représente l'Output de transaction*/

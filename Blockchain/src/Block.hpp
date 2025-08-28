@@ -2,7 +2,7 @@
 #define BLOCK_HPP
 
 
-#include "Transactions.hpp"
+#include "BlockTransactions.hpp"
 
 class Blockchain;
 
