@@ -44,8 +44,8 @@ public:
     const BlockTransactions& getTransactions() const {return transactions;}
 
 
-    bool verify(const Blockchain& blockchain) const {
-        return (calculateHash() == hash) && hashMatchesDifficulty() && transactions.verify(blockchain, *this);
+    bool verify(const Blockchain& blockchain, const UTXOs& unspentOutputs) const {
+        return (calculateHash() == hash) && hashMatchesDifficulty() && transactions.verify(blockchain, *this, unspentOutputs) && (index == 0 || previousHash == blockchain[index - 1].getHash());
     }
 
 };

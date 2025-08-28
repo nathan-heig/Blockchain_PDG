@@ -32,7 +32,7 @@ const std::string Transaction::getStrToSign() const {
     }
 
 
-const bool Transaction::verifyInputs(const Blockchain& blockchain) const {
+const bool Transaction::verifyInputs(const Blockchain& blockchain, const UTXOs& unspentOutputs) const {
     if (inputs.size() > 100 or inputs.empty()){
         return false; // A transaction must have at least one input and no more than 100
     }
@@ -46,7 +46,7 @@ const bool Transaction::verifyInputs(const Blockchain& blockchain) const {
         if (out.getPubKey() != pubKey) {
             return false; // All inputs must be from the same owner
         }
-        if (blockchain.getUnspentOutputReferences().at(pubKey).find(input) == blockchain.getUnspentOutputReferences().at(pubKey).end()) {
+        if (unspentOutputs.at(pubKey).find(input) == unspentOutputs.at(pubKey).end()) {
             return false; // Input must be unspent
         }
     }
@@ -66,10 +66,10 @@ const bool Transaction::verifyOutputs() const {
     return true;
 }
 
-const bool Transaction::verify(const Blockchain& blockchain) const {
-    return verifyInputs(blockchain) && verifyOutputs() && verifySold(blockchain) && verifySignature(blockchain);
+const bool Transaction::verify(const Blockchain& blockchain, const UTXOs& unspentOutputs) const {
+    return verifyInputs(blockchain, unspentOutputs) && verifyOutputs() && verifySold(blockchain) && verifySignature(blockchain);
 }
 
 const bool Transaction::verifyMiningReward(const Blockchain& blockchain, const Block& block) const {
-    return outputs.size() == 1 and inputs.empty() and signature.empty() and outputs[0].getValue() == block.getTransactions().calculateMinerReward(blockchain, block);
+    return outputs.size() == 1 and inputs.empty() and signature.empty() and outputs[0].getValue() == BlockTransactions::calculateMinerReward(blockchain, block);
 }

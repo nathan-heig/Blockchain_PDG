@@ -28,7 +28,7 @@ public:
             this->txs.push_back(txs[i]);
         }
 
-        txs.push_back(Transaction::miningReward(minerPubKey, totalFees + Blockchain::getMiningRewardAt(blockchain.getBlocks().size())));
+        txs.push_back(Transaction::miningReward(minerPubKey, totalFees + Blockchain::getMiningRewardAt(blockchain.size())));
     }
 
     const Transaction& operator[](size_t i) const { return txs[i]; }
@@ -42,13 +42,13 @@ public:
         return totalFees;
     }
 
-    double calculateMinerReward(const Blockchain& blockchain, const Block& block) const {
+    static double calculateMinerReward(const Blockchain& blockchain, const Block& block){
         return blockchain.getMiningRewardAt(block.getIndex()) + block.getTransactions().getTotalFees(blockchain);
     }
 
-    bool verify(const Blockchain& blockchain, const Block& block) const {
+    bool verify(const Blockchain& blockchain, const Block& block, const UTXOs& unspentOutputs) const {
         for (size_t i = 0; i < txs.size() - 1; ++i) { // Ignore last tx (mining reward)
-            if (!txs[i].verify(blockchain)) {
+            if (!txs[i].verify(blockchain, unspentOutputs)) {
                 return false;
             }
         }

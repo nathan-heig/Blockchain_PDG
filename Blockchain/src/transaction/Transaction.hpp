@@ -69,7 +69,7 @@ private:
 
     //Verification methods
     /*Vérifie les entrées de la transaction*/
-    const bool verifyInputs(const Blockchain& blockchain) const;
+    const bool verifyInputs(const Blockchain& blockchain, const UTXOs& unspentOutputs) const;
     /*Vérifie les sorties de la transaction*/
     const bool verifyOutputs() const;
     /*Vérifie que la transaction est solvable*/
@@ -98,7 +98,7 @@ public:
     void sign(EVP_PKEY* privateKey) {signature = key::signData(this->getStrToSign(), privateKey);}
 
     /*Vérifie la validité de la transaction et ne valide pas une récompense de minage*/
-    const bool verify(const Blockchain& blockchain) const;
+    const bool verify(const Blockchain& blockchain, const UTXOs& unspentOutputs) const;
     /*Vérifie une récompense de minage*/
     const bool verifyMiningReward(const Blockchain& blockchain, const Block& block) const;
 };

@@ -4,12 +4,12 @@
 
 Block Block::createBlock(const Blockchain& blockchain, const PubKey& minerPubKey) {
     Block block;
-    block.index = blockchain.getBlocks().size();
+    block.index = blockchain.size();
     block.timestamp = static_cast<uint32_t>(time(nullptr));
-    block.previousHash = blockchain.getBlocks().back().getHash();
+    block.previousHash = blockchain[block.index - 1].getHash();
     block.target = blockchain.getTargetAt(block.index);
 
-    block.transactions = BlockTransactions(minerPubKey, blockchain);
+    block.transactions = blockchain.getNewBlockTransactions(minerPubKey);
 
     // Proof of Work
     block.nonce = 0;
