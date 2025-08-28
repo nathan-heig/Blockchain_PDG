@@ -7,64 +7,16 @@
 #include <vector>
 #include <string>
 #include "cryptography/crypto.hpp"
+#include "OutputReference.hpp"
 
 class Blockchain;
 class Block;
 class UTXOs;
 
-
-/*Cette classe représente l'Output de transaction*/
-class Output {
-private:
-    double value;
-    PubKey pubKey;
-
-public:
-    Output(double value, const PubKey& pubKey)
-        : value(value), pubKey(pubKey) {}
-
-    const double getValue() const { return value; }
-    const PubKey& getPubKey() const { return pubKey; }
-
-    const std::string toString() const {
-        std::ostringstream oss;
-        oss << "Value: " << value << ", PubKey: " << pubKey;
-        return oss.str();
-    }
-};
-using Outputs = std::vector<const Output>;
-
-/*Cette classe représente une référence à une sortie de transaction utilisée comme Input d'une autre transaction*/
-class OutputReference {
-private:
-    uint32_t blockIndex;
-    uint16_t txIndex;
-    uint16_t outputIndex;
-
-public:
-    //Constructor
-    OutputReference(uint32_t blockIdx, uint16_t txIdx, uint16_t outIdx)
-        : blockIndex(blockIdx), txIndex(txIdx), outputIndex(outIdx) {}
-    
-
-    //Comparison operator
-    bool operator<(const OutputReference& other) const {
-        return std::tie(blockIndex, txIndex, outputIndex) < std::tie(other.blockIndex, other.txIndex, other.outputIndex);
-    }
+#define MAX_INPUTS 100
+#define MAX_OUTPUTS 50
 
 
-    //Getters
-    const Output& getOutput(const Blockchain& blockchain) const;
-
-    //String representation
-    const std::string toString() const {
-        std::ostringstream oss;
-        oss << "Block: " << blockIndex << ", Tx: " << txIndex << ", Out: " << outputIndex;
-        return oss.str();
-    }
-
-};
-using Inputs = std::vector<const OutputReference>;
 
 /*Cette classe représente une transaction dans la blockchain. Elle contient des entrées (inputs) et des sorties (outputs), ainsi qu'une signature pour vérifier l'authenticité de la transaction.*/
 class Transaction {

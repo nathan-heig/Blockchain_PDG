@@ -1,9 +1,6 @@
 #include "Transaction.hpp"
 #include "Blockchain.hpp"
 
-const Output& OutputReference::getOutput(const Blockchain& blockchain) const {
-    return blockchain[blockIndex][txIndex].getOutputs()[outputIndex];
-}
 
 const double Transaction::getFee(const Blockchain& blockchain) const {
     double inputSum = 0.0;
@@ -33,8 +30,8 @@ const std::string Transaction::getStrToSign() const {
 
 
 const bool Transaction::verifyInputs(const Blockchain& blockchain, const UTXOs& unspentOutputs) const {
-    if (inputs.size() > 100 or inputs.empty()){
-        return false; // A transaction must have at least one input and no more than 100
+    if (inputs.size() >= MAX_INPUTS or inputs.empty()){
+        return false; // A transaction must have at least one input and no more than MAX_INPUTS
     }
 
     const PubKey pubKey = this->inputs[0].getOutput(blockchain).getPubKey();
@@ -54,12 +51,12 @@ const bool Transaction::verifyInputs(const Blockchain& blockchain, const UTXOs& 
 }
 
 const bool Transaction::verifyOutputs() const {
-    if (outputs.size() > 100 or outputs.empty()){
-        return false; // A transaction must have at least one output and no more than 100
+    if (outputs.size() >= MAX_OUTPUTS or outputs.empty()){
+        return false; // A transaction must have at least one output and no more than MAX_OUTPUTS
     }
 
     for (const auto& output : outputs) {
-        if (output.getValue() <= 0) {
+        if (output.getValue() < 0) {
             return false; // Output value must be positive
         }
     }
