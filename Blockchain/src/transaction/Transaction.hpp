@@ -6,10 +6,12 @@
 #include <cstdint>
 #include <vector>
 #include <string>
-#include "cryptography/key.hpp"
+#include "cryptography/crypto.hpp"
 
 class Blockchain; // Forward declaration to avoid circular dependency
 
+
+/*Cette classe représente l'Output de transaction*/
 class Output {
 private:
     double value;
@@ -30,6 +32,7 @@ public:
 };
 using Outputs = std::vector<const Output>;
 
+/*Cette classe représente une référence à une sortie de transaction utilisée comme Input d'une autre transaction*/
 class OutputReference {
 private:
     uint32_t blockIndex;
@@ -61,6 +64,7 @@ public:
 };
 using Inputs = std::vector<const OutputReference>;
 
+/*Cette classe représente une transaction dans la blockchain. Elle contient des entrées (inputs) et des sorties (outputs), ainsi qu'une signature pour vérifier l'authenticité de la transaction.*/
 class Transaction {
 private:
     Inputs inputs;
@@ -75,7 +79,7 @@ private:
     /*Vérifie que la transaction est solvable*/
     const bool verifySold(const Blockchain& blockchain) const {return getFee(blockchain) >= 0;}
     /*Vérifie la signature de la transaction*/
-    const bool verifySignature(const Blockchain& blockchain) const {return key::verifySignature(getStrToSign(), signature, inputs[0].getOutput(blockchain).getPubKey());}
+    const bool verifySignature(const Blockchain& blockchain) const {return crpto::verifySignature(getStrToSign(), signature, inputs[0].getOutput(blockchain).getPubKey());}
 
 public:
     //Constructor
@@ -95,7 +99,7 @@ public:
     const std::string getStrToSign() const;
 
     //Signature methods
-    void sign(EVP_PKEY* privateKey) {signature = key::signData(this->getStrToSign(), privateKey);}
+    void sign(EVP_PKEY* privateKey) {signature = crpto::signData(this->getStrToSign(), privateKey);}
 
     /*Vérifie la validité de la transaction et ne valide pas une récompense de minage*/
     const bool verify(const Blockchain& blockchain, const UTXOs& unspentOutputs) const;

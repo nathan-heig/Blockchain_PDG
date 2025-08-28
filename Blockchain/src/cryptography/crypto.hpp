@@ -20,7 +20,7 @@ using Hash = std::string;
 #include <string>
 
 
-namespace key{
+namespace crpto{
 
     EVP_PKEY* createPrivateKey();
     EVP_PKEY* getPrivateKey(const std::string& privateKeyFile);
@@ -29,6 +29,12 @@ namespace key{
     
     Signature signData(const std::string& transaction, EVP_PKEY* pkey);
     bool verifySignature(const std::string& data, const Signature& signature, const PubKey& pubKey);
-    
+
+    Hash hashData(const std::string& data) {
+        unsigned char hash[SHA256_DIGEST_LENGTH];
+        SHA256(reinterpret_cast<const unsigned char*>(data.c_str()), data.size(), hash);
+        return Hash(hash, hash + SHA256_DIGEST_LENGTH);
+    }
+
 }
 #endif // KEY_HPP

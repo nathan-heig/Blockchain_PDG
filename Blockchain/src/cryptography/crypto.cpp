@@ -3,7 +3,7 @@
 #include <fstream>
 #include <sstream>
 
-namespace key{
+namespace crpto{
 
 
     EVP_PKEY* createPrivateKey() {

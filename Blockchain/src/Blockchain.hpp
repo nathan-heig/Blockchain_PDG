@@ -5,20 +5,22 @@
 
 #include <unordered_map>
 #include <set>
-#include <deque>
 
 using UTXOs = std::unordered_map<const PubKey, std::set<const OutputReference>>;
-using TransactionsPool = std::deque<const Transaction>;
+
+//en attendant d'avoir une classe pour ca
+using TransactionsPool = std::set<const Transaction>;
 
 class Blockchain {
 private:
-    std::vector<const Block> blocks;
-    TransactionsPool pendingTransactions;
-    UTXOs unspentOutput;
+    std::vector<const Block> blocks;//vecteur contenant les blocks de la blockchain
+    TransactionsPool pendingTransactions;//pool de transactions en attente
+    UTXOs utxos;//output de transactions non dépensées (unspent transaction outputs)
 
     /*Ajoute une sortie non dépensée à la liste*/
-    void addUnspentOutput(const PubKey& pubKey, const OutputReference& outputRef) {unspentOutput[pubKey].insert(outputRef);}
-    void deleteUnspentOutput(const PubKey& pubKey, const OutputReference& outputRef) {unspentOutput[pubKey].erase(outputRef);}
+    void addUnspentOutput(const PubKey& pubKey, const OutputReference& outputRef) {utxos[pubKey].insert(outputRef);}
+    /*Supprime une sortie non dépensée de la liste*/
+    void deleteUnspentOutput(const PubKey& pubKey, const OutputReference& outputRef) {utxos[pubKey].erase(outputRef);}
 
 public:
     // Constructor
@@ -28,48 +30,25 @@ public:
     /*Retourne un object Transactions prêt a etre ajouté dans un bloc*/
     const BlockTransactions& getNewBlockTransactions(const PubKey& minerPubKey) const {return BlockTransactions(*this, pendingTransactions, minerPubKey);}
     /*Retourne le mining reward a un index donné*/
-    static const double getMiningRewardAt(uint32_t index) {
-        // version simplifiée pour l'instant
-        return 1000;
-    }
+    static const double getMiningRewardAt(uint32_t index);
     /*Retourne la difficulté à un index donné en se basent sur le temps des blocks precedants l'index*/
-    const double getTargetAt(uint32_t index) const{
-        // version simplifiée pour l'instant
-        return 2;
-    }
+    const double getTargetAt(uint32_t index) const;
+    /*Retourne le nombre de blocs dans la blockchain*/
+    size_t size() const {return blocks.size();}
 
     //Operators
     /*Retourne une référence constante sur le bloc à l'index donné*/
     const Block& operator[](const size_t index) const {return blocks[index];}
-    size_t size() const {return blocks.size();}
 
     //Setters
     /*Vérifie si le bloc est valide avant de l'ajouter à la blockchain et modifie la liste des sorties non dépensées*/
-    bool addBlock(const Block& block) {
-        if (!block.verify(*this, unspentOutput)) {
-            return false;
-        }
-        blocks.push_back(block);
-        for (size_t i = 0; i < block.getTransactions().size(); ++i) {
-            for (size_t j = 0; j < block[i].getOutputs().size(); ++j) {
-                const OutputReference outRef(block.getIndex(), i, j);
-                addUnspentOutput(block[i].getOutputs()[j].getPubKey(), outRef);
-            }
-            for (const auto& input : block[i].getInputs()) {
-                deleteUnspentOutput(input.getOutput(*this).getPubKey(), input);
-            }
-        }
-        return true;
-    }
+    bool addBlock(const Block& block);
     /*Vérifie si la transaction est valide avant de l'ajouter à la pool*/
-    bool addPendingTransaction(const Transaction& txs) {
-        //version simplifiée pour l'instant
-        if (!txs.verify(*this, unspentOutput)) {
-            return false;
-        }
-        pendingTransactions.push_back(txs);
-        return true;
-    }
+    bool addPendingTransaction(const Transaction& tx);
+
+
+    //Fonctions
+
 
 };
 

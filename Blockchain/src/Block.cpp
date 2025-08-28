@@ -6,7 +6,7 @@ Block Block::createBlock(const Blockchain& blockchain, const PubKey& minerPubKey
     Block block;
     block.index = blockchain.size();
     block.timestamp = static_cast<uint32_t>(time(nullptr));
-    block.previousHash = blockchain[block.index - 1].getHash();
+    block.previousHash = blockchain.size() > 0 ? blockchain[blockchain.size() - 1].getHash() : "0";
     block.target = blockchain.getTargetAt(block.index);
 
     block.transactions = blockchain.getNewBlockTransactions(minerPubKey);
@@ -21,7 +21,6 @@ Block Block::createBlock(const Blockchain& blockchain, const PubKey& minerPubKey
     return block;
 }
 
-
 const bool Block::hashMatchesDifficulty() const {
     for (uint8_t i = 0; i < target; ++i) {
         if (hash[i] != '0') {
@@ -29,4 +28,8 @@ const bool Block::hashMatchesDifficulty() const {
         }
     }
     return true;
+}
+
+bool Block::verify(const Blockchain& blockchain, const UTXOs& utxos) const {
+    return (calculateHash() == hash) && hashMatchesDifficulty() && transactions.verify(blockchain, *this, utxos) && (index == 0 || previousHash == blockchain[index - 1].getHash());
 }

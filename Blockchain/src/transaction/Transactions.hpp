@@ -9,11 +9,10 @@
 #define MAX_TRANSACTIONS 10
 
 
-/*Cette object représente un ensemble de transactions à inclure dans un bloc. Les transactions sont sélectionnées en fonction de leur validité et de leur absence d'inputs communs.*/
+/*Cette object représente un ensemble de transactions à inclure dans un bloc. Elle est responsable de verifier la validité des transactions et de gerer les récompense de minage.*/
 class BlockTransactions {
 private:
     std::vector<const Transaction> txs;
-
 
 public:
 

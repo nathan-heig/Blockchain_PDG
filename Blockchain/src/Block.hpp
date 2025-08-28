@@ -22,14 +22,14 @@ private:
     Hash hash;
 
     // Fonctions
-    Hash calculateHash() const;
+    Hash calculateHash() const {return crpto::hashData(std::to_string(index) + std::to_string(nonce));}//version test
     const bool hashMatchesDifficulty() const;
 
     Block(){}
 
 public:
 
-    // Constructors
+    /*Crée un nouveau bloc à partir de la blockchain et de la clé publique du mineur*/
     static Block createBlock(const Blockchain& blockchain, const PubKey& minerPubKey);
 
     // Operators
@@ -43,10 +43,8 @@ public:
     const Hash& getHash() const { return hash; }
     const BlockTransactions& getTransactions() const {return transactions;}
 
-
-    bool verify(const Blockchain& blockchain, const UTXOs& unspentOutputs) const {
-        return (calculateHash() == hash) && hashMatchesDifficulty() && transactions.verify(blockchain, *this, unspentOutputs) && (index == 0 || previousHash == blockchain[index - 1].getHash());
-    }
+    /*Cette fonction vérifie la validité du bloc en s'assurant que le hash correspond à la difficulté et que les transactions sont valides.*/
+    bool verify(const Blockchain& blockchain, const UTXOs& utxos) const;
 
 };
 
