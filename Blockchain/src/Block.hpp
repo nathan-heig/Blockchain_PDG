@@ -2,9 +2,10 @@
 #define BLOCK_HPP
 
 
-#include "Transaction.hpp"
+#include "Transactions.hpp"
 
 class Blockchain;
+
 
 class Block {
 private:
@@ -12,22 +13,23 @@ private:
     uint32_t index;
     uint32_t nonce;
 
-    time_t timestamp;
+    uint32_t timestamp;
     uint8_t target;
-    std::vector<const Transaction> transactions;
+
+    BlockTransactions transactions;
+
     Hash previousHash;
-
-
     Hash hash;
 
     // Fonctions
     Hash calculateHash() const;
     const bool hashMatchesDifficulty() const;
 
+    Block(){}
+
 public:
 
     // Constructors
-    Block(){}
     static Block createBlock(const Blockchain& blockchain, const PubKey& minerPubKey);
 
     // Operators
@@ -39,7 +41,12 @@ public:
     const uint32_t getTimestamp() const { return timestamp; }
     const Hash& getPreviousHash() const { return previousHash; }
     const Hash& getHash() const { return hash; }
-    const std::vector<const Transaction>& getTransactions() const {return transactions;}
+    const BlockTransactions& getTransactions() const {return transactions;}
+
+
+    bool verify(const Blockchain& blockchain) const {
+        return (calculateHash() == hash) && hashMatchesDifficulty() && transactions.verify(blockchain, *this);
+    }
 
 };
 

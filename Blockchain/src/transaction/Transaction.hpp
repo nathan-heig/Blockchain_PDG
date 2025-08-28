@@ -12,8 +12,8 @@ class Blockchain; // Forward declaration to avoid circular dependency
 
 class Output {
 private:
-    const double value;
-    const PubKey pubKey;
+    double value;
+    PubKey pubKey;
 
 public:
     Output(double value, const PubKey& pubKey)
@@ -28,12 +28,13 @@ public:
         return oss.str();
     }
 };
+using Outputs = std::vector<const Output>;
 
 class OutputReference {
 private:
-    const uint32_t blockIndex;
-    const uint16_t txIndex;
-    const uint16_t outputIndex;
+    uint32_t blockIndex;
+    uint16_t txIndex;
+    uint16_t outputIndex;
 
 public:
     //Constructor
@@ -58,11 +59,12 @@ public:
     }
 
 };
+using Inputs = std::vector<const OutputReference>;
 
 class Transaction {
 private:
-    const std::vector<const OutputReference> inputs;
-    const std::vector<const Output> outputs;
+    Inputs inputs;
+    Outputs outputs;
     Signature signature;
 
     //Verification methods
@@ -71,14 +73,13 @@ private:
     /*Vérifie les sorties de la transaction*/
     const bool verifyOutputs() const;
     /*Vérifie que la transaction est solvable*/
-    const bool verifySold(const Blockchain& blockchain) const {return this->getFee(blockchain) >= 0;}
+    const bool verifySold(const Blockchain& blockchain) const {return getFee(blockchain) >= 0;}
     /*Vérifie la signature de la transaction*/
-    const bool verifySignature(const Blockchain& blockchain) const {return key::verifySignature(this->getStrToSign(), signature, this->inputs[0].getOutput(blockchain).getPubKey());}
+    const bool verifySignature(const Blockchain& blockchain) const {return key::verifySignature(getStrToSign(), signature, inputs[0].getOutput(blockchain).getPubKey());}
 
 public:
     //Constructor
-    Transaction(const std::vector<const OutputReference>&& inputs,
-                        const std::vector<const Output>&& outputs)
+    Transaction(const Inputs&& inputs, Outputs&& outputs)
         : inputs(std::move(inputs)), outputs(std::move(outputs)), signature() {}
 
     /*Crééer une transaction de récompense de minage*/
@@ -88,8 +89,8 @@ public:
     }
 
     //Getters
-    const std::vector<const OutputReference>& getInputs() const { return inputs; }
-    const std::vector<const Output>& getOutputs() const { return outputs; }
+    const Inputs& getInputs() const { return inputs; }
+    const Outputs& getOutputs() const { return outputs; }
     const double getFee(const Blockchain& blockchain) const;
     const std::string getStrToSign() const;
 
@@ -99,7 +100,7 @@ public:
     /*Vérifie la validité de la transaction et ne valide pas une récompense de minage*/
     const bool verify(const Blockchain& blockchain) const;
     /*Vérifie une récompense de minage*/
-    const bool verifyMiningReward(const Blockchain& blockchain, uint32_t blockIndex) const;
+    const bool verifyMiningReward(const Blockchain& blockchain, const Block& block) const;
 };
 
 

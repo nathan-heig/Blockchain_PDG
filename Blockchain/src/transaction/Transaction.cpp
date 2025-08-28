@@ -70,6 +70,6 @@ const bool Transaction::verify(const Blockchain& blockchain) const {
     return verifyInputs(blockchain) && verifyOutputs() && verifySold(blockchain) && verifySignature(blockchain);
 }
 
-const bool Transaction::verifyMiningReward(const Blockchain& blockchain, uint32_t blockIndex) const {
-    return this->outputs.size() == 1 and this->inputs.empty() and this->outputs[0].getValue() == blockchain.getMiningRewardAt(blockIndex);
+const bool Transaction::verifyMiningReward(const Blockchain& blockchain, const Block& block) const {
+    return outputs.size() == 1 and inputs.empty() and signature.empty() and outputs[0].getValue() == block.getTransactions().calculateMinerReward(blockchain, block);
 }
