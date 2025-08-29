@@ -18,11 +18,11 @@ bool Blockchain::addBlock(const Block& block) {
     }
 
     blocks.push_back(block);
-    for (size_t i = 0; i < block.getTransactions().size(); ++i) {
+    for (size_t i = 0; i < block.getBlockTransactions().size(); ++i) {
 
         //Supprime la transaction de la pool
     // pendingTransactions stocke des copies; tentative d'effacement par equivalence
-    pendingTransactions.erase(block.getTransactions()[i]);
+    pendingTransactions.erase(block.getBlockTransactions()[i]);
 
         //itere sur les sortie pour les ajouter aux unspentoutputs
         for (size_t j = 0; j < block[i].getOutputs().size(); ++j) {

@@ -6,10 +6,11 @@
 #include <set>
 #include "Transaction.hpp"
 
+#include <cereal/types/vector.hpp>
+
 #define MAX_TRANSACTIONS 10
 
-class TransactionsPool;
-
+using TransactionsPool = std::set<Transaction>;
 
 /*Cette object représente un ensemble de transactions à inclure dans un bloc. Elle est responsable de verifier la validité des transactions et de gerer les récompense de minage.*/
 class BlockTransactions {

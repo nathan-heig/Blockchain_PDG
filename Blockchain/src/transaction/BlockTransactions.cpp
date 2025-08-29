@@ -27,12 +27,12 @@ double BlockTransactions::getTotalFees(const Blockchain& blockchain) const {
 }
 
 double BlockTransactions::calculateMinerReward(const Blockchain& blockchain, const Block& block){
-    return blockchain.getMiningRewardAt(block.getIndex()) + block.getTransactions().getTotalFees(blockchain);
+    return blockchain.getMiningRewardAt(block.getIndex()) + block.getBlockTransactions().getTotalFees(blockchain);
 }
 
-bool BlockTransactions::verify(const Blockchain& blockchain, const Block& block, const UTXOs& unspentOutputs) const {
+bool BlockTransactions::verify(const Blockchain& blockchain, const Block& block, const UTXOs& utxos) const {
     for (size_t i = 0; i < txs.size() - 1; ++i) { // Ignore last tx (mining reward)
-        if (!txs[i].verify(blockchain, unspentOutputs)) {
+        if (!txs[i].verify(blockchain, utxos)) {
             return false;
         }
     }

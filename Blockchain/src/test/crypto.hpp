@@ -1,5 +1,5 @@
-#ifndef KEY_HPP
-#define KEY_HPP
+#ifndef CRYPTO_HPP
+#define CRYPTO_HPP
 
 #include <string>
 #include <vector>
@@ -20,7 +20,7 @@ using Hash = std::string;
 #include <string>
 
 
-namespace crpto{
+namespace crypto{
 
     EVP_PKEY* createPrivateKey();
     EVP_PKEY* getPrivateKey(const std::string& privateKeyFile);
@@ -30,11 +30,7 @@ namespace crpto{
     Signature signData(const std::string& transaction, EVP_PKEY* pkey);
     bool verifySignature(const std::string& data, const Signature& signature, const PubKey& pubKey);
 
-    Hash hashData(const std::string& data) {
-        unsigned char hash[SHA256_DIGEST_LENGTH];
-        SHA256(reinterpret_cast<const unsigned char*>(data.c_str()), data.size(), hash);
-        return Hash(hash, hash + SHA256_DIGEST_LENGTH);
-    }
+    Hash hashData(const std::string& data);
 
 }
-#endif // KEY_HPP
+#endif // CRYPTO_HPP

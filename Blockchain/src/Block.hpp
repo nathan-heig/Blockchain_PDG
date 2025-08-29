@@ -2,7 +2,9 @@
 #define BLOCK_HPP
 
 
-#include "BlockTransactions.hpp"
+#include "transaction/BlockTransactions.hpp"
+#include <cereal/types/vector.hpp>
+#include <cereal/types/string.hpp>
 
 class Blockchain;
 
@@ -22,12 +24,12 @@ private:
     Hash hash;
 
     // Fonctions
-    Hash calculateHash() const {return crpto::hashData(std::to_string(index) + std::to_string(nonce));}//version test
+    Hash calculateHash() const {return crypto::hashData(std::to_string(index) + std::to_string(nonce));}//version test
     const bool hashMatchesDifficulty() const;
 
-    Block() = default; // pour désérialisation
-
 public:
+
+    Block() = default; // pour désérialisation
 
     /*Crée un nouveau bloc à partir de la blockchain et de la clé publique du mineur*/
     static Block createBlock(const Blockchain& blockchain, const PubKey& minerPubKey);
@@ -41,7 +43,7 @@ public:
     const uint32_t getTimestamp() const { return timestamp; }
     const Hash& getPreviousHash() const { return previousHash; }
     const Hash& getHash() const { return hash; }
-    const BlockTransactions& getTransactions() const {return transactions;}
+    const BlockTransactions& getBlockTransactions() const {return transactions;}
 
     /*Cette fonction vérifie la validité du bloc en s'assurant que le hash correspond à la difficulté et que les transactions sont valides.*/
     bool verify(const Blockchain& blockchain, const UTXOs& utxos) const;

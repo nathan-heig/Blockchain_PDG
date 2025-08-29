@@ -9,8 +9,12 @@
 #include "PeerInfo.hpp"
 #include "BinaryProtocol.hpp"
 #include "config.hpp"
-#include "Blockchain.hpp"
 
+#include <miniupnpc/miniupnpc.h>
+#include <miniupnpc/upnpcommands.h>
+#include <miniupnpc/upnperrors.h>
+
+class Blockchain;
 
 // Exemple complet d'un mini gestionnaire de réseau avec handshake + ping
 class NodeNetwork {
@@ -20,13 +24,16 @@ public:
     explicit NodeNetwork(Blockchain& blockchain)
         : io_(), acceptor_(io_, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), LISTEN_PORT)), listenPort_(LISTEN_PORT), blockchain_(blockchain) {}
 
+    /*Lance un thread qui gère le réseau*/
     void start() {
+        openPort();
         accept();
         thread_ = std::thread([this]{ io_.run(); });
     }
     void stop() {
         io_.stop();
         if (thread_.joinable()) thread_.join();
+        closePort();
     }
 
     void connect(const PeerInfo& peer) {
@@ -66,9 +73,8 @@ private:
         acceptor_.async_accept(conn->socketRef(), [this, conn](auto ec){
             if (!ec){
                 PeerInfo p(conn->socketRef().remote_endpoint().address().to_string(), conn->socketRef().remote_endpoint().port());
-                incoming_.push_back(conn);
+                incoming_[p] = conn;
                 setupCallbacks(p, conn);
-                // On attend sa Version -> on ne répond qu'après réception
             }
             accept();
         });
@@ -82,113 +88,71 @@ private:
         );
     }
 
-    void broadcastBack(const std::string& raw, const PeerInfo& exclude){
-        std::string s = raw;
-        for (auto& [peer, c] : peers_)
-            if (peer != exclude)
-                c->send(s);
-        for (auto& [peer, c] : incoming_)
-            if (peer != exclude)
-                c->send(s);
-    }
+    void broadcastBack(const std::string& raw, const PeerInfo& exclude);
 
-    void handleMessage(const PeerInfo& peer, const std::string& raw){
-        // Un raw peut contenir exactement un frame (TcpConnection garantit framing length-only; ici header binaire custom) :
-        if (raw.size() < sizeof(MsgHeader))
-            return;
+    void handleMessage(const PeerInfo& peer, const std::string& raw);
+    void handleDisconnect(const PeerInfo& peer);
 
-        Frame frame(raw.begin(), raw.end());
-        MsgHeader h;
-        const uint8_t* payload = nullptr;
-        try {
-            BinaryProtocol::parseFrame(frame, h, payload);
-        } catch(...) {
-            return; // drop
+    void buildAndSendFrame(const PeerInfo& peer, MsgType type, const std::vector<uint8_t>& payload);
+
+    void sendVersion(const PeerInfo& peer);
+
+    void sendAck(const PeerInfo& peer);
+
+    void sendBlock(const PeerInfo& peer, uint32_t blockIdx);
+
+    void requestBlock(const PeerInfo& peer, uint32_t blockIdx);
+
+    void openPort() {
+        UPNPDev* devlist = nullptr;
+        std::string lanaddr(64, '\0');
+
+        int error = 0;
+        devlist = upnpDiscover(2000, nullptr, nullptr, 0, 0, 2, &error);
+
+        UPNPUrls urls;
+        IGDdatas data;
+        error = UPNP_GetValidIGD(devlist, &urls, &data, &lanaddr[0], lanaddr.size());
+        freeUPNPDevlist(devlist);
+
+        if (error != 1) {
+            std::cout << "Failed to get IGD" << std::endl;
         }
 
-        auto type = static_cast<MsgType>(h.type);
-        switch(type){
-            case MsgType::VERSION: {
-                if (h.length == sizeof(uint32_t)) {
-                    uint32_t remoteSize; std::memcpy(&remoteSize, payload, sizeof(uint32_t));
-                    if (remoteSize > blockchain_.size())
-                        requestBlock(peer, blockchain_.size());
-                }
-                break;
-            }
-            case MsgType::GET_BLOCK: {
-                if (h.length == sizeof(uint32_t)) {
-                    uint32_t blockIdx; std::memcpy(&blockIdx, payload, sizeof(uint32_t));
-                    sendBlock(peer, blockIdx);
-                }
-                break;
-            }
-            case MsgType::BLOCK: {
-                try {
-                    Block b = BinaryProtocol::deserializeObject<Block>(payload, h.length);
+        std::string port_str = std::to_string(listenPort_);
+        error = UPNP_AddPortMapping(urls.controlURL, data.first.servicetype,
+                                    port_str.c_str(), port_str.c_str(), lanaddr.c_str(), "Blockchain", "TCP", nullptr, "0");
 
-                    // TODO: validation hors thread réseau
-                   blockchain_.addBlock(b);
-                } catch(...) {}
-                break;
-            }
-            case MsgType::BROADCAST_TX: {
-
-                try {
-                    Transaction tx = BinaryProtocol::deserializeObject<Transaction>(payload, h.length);
-                    // TODO: validation hors thread réseau
-                    if (blockchain_.addPendingTransaction(tx)) {
-                        broadcastBack(raw, peer);
-                    }
-                } catch(...) {}
-                break;
-            }
-            case MsgType::BROADCAST_BLOCK: {
-
-                try {
-                    Block b = BinaryProtocol::deserializeObject<Block>(payload, h.length);
-                    // TODO: validation hors thread réseau
-                    if (blockchain_.addBlock(b)) {
-                        broadcastBack(raw, peer);
-                    }
-                } catch(...) {}
-                break;
-            }
-            default: break;
+        if (error != UPNPCOMMAND_SUCCESS) {
+            std::cout << "Failed to add port mapping" << std::endl;
         }
-    }
 
-    void handleDisconnect(const PeerInfo& peer){
-        peers_.erase(peer); // pour outgoing
+        FreeUPNPUrls(&urls);
     }
+    void closePort() {
+        UPNPDev* devlist = nullptr;
+        std::string lanaddr(64, '\0');
 
-    void buildAndSendFrame(const PeerInfo& peer, MsgType type, const std::vector<uint8_t>& payload){
-        auto it = peers_.find(peer);
-        if (it == peers_.end())
-            return; //si le peer n'est pas trouvé
-        auto frame = BinaryProtocol::buildFrame(type, payload);
-        std::string s(reinterpret_cast<const char*>(frame.data()), frame.size());
-        it->second->send(s);
-    }
+        int error = 0;
+        devlist = upnpDiscover(2000, nullptr, nullptr, 0, 0, 2, &error);
 
-    void sendVersion(const PeerInfo& peer){
-        uint32_t height = blockchain_.size();
-        auto payload = std::vector<uint8_t>(sizeof(height));
-        std::memcpy(payload.data(), &height, sizeof(height));
-        buildAndSendFrame(peer, MsgType::VERSION, payload);
-    }
+        UPNPUrls urls;
+        IGDdatas data;
+        error = UPNP_GetValidIGD(devlist, &urls, &data, &lanaddr[0], lanaddr.size());
+        freeUPNPDevlist(devlist);
 
-    void sendBlock(const PeerInfo& peer, uint32_t blockIdx){
-        const auto& block = blockchain_[blockIdx];
-        auto payload = BinaryProtocol::serializeObject<Block>(block);
-        buildAndSendFrame(peer, MsgType::BLOCK, payload);
-        
-    }
+        if (error != 1) {
+            std::cout << "Failed to get IGD" << std::endl;
+        }
 
-    void requestBlock(const PeerInfo& peer, uint32_t blockIdx){
-        auto payload = std::vector<uint8_t>(sizeof(blockIdx));
-        std::memcpy(payload.data(), &blockIdx, sizeof(blockIdx));
-        buildAndSendFrame(peer, MsgType::GET_BLOCK, payload);
+        std::string port_str = std::to_string(listenPort_);
+        error = UPNP_DeletePortMapping(urls.controlURL, data.first.servicetype, port_str.c_str(), "TCP", nullptr);
+
+        if (error != UPNPCOMMAND_SUCCESS) {
+            std::cout << "Failed to delete port mapping" << std::endl;
+        }
+
+        FreeUPNPUrls(&urls);
     }
 };
 

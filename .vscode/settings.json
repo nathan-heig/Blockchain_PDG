@@ -76,6 +76,19 @@
         "span": "cpp",
         "variant": "cpp",
         "cfenv": "cpp",
-        "stdfloat": "cpp"
-    }
+        "stdfloat": "cpp",
+        "csetjmp": "cpp",
+        "strstream": "cpp",
+        "bitset": "cpp",
+        "forward_list": "cpp",
+        "buffer": "cpp",
+        "executor": "cpp",
+        "internet": "cpp",
+        "io_context": "cpp",
+        "netfwd": "cpp",
+        "socket": "cpp",
+        "timer": "cpp",
+        "valarray": "cpp"
+    },
+    "cmake.sourceDirectory": "/home/nat/documents/HEIG_VD/Blockchain_PDG/Blockchain"
 }

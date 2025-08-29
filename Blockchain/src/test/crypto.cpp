@@ -1,9 +1,9 @@
-#include "key.hpp"
+#include "test/crypto.hpp"
 
 #include <fstream>
 #include <sstream>
 
-namespace crpto{
+namespace crypto {
 
 
     EVP_PKEY* createPrivateKey() {
@@ -171,6 +171,12 @@ namespace crpto{
         EVP_PKEY_free(pkey);
 
         return isValid;
+    }
+
+    Hash hashData(const std::string& data) {
+        unsigned char hash[SHA256_DIGEST_LENGTH];
+        SHA256(reinterpret_cast<const unsigned char*>(data.c_str()), data.size(), hash);
+        return Hash(hash, hash + SHA256_DIGEST_LENGTH);
     }
 
 }

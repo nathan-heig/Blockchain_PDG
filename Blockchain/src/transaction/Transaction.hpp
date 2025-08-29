@@ -6,12 +6,18 @@
 #include <cstdint>
 #include <vector>
 #include <string>
-#include "cryptography/crypto.hpp"
+#include <unordered_map>
+#include <set>
+
+#include <cereal/types/vector.hpp>
+#include <cereal/types/string.hpp>
+
+#include "test/crypto.hpp"
 #include "OutputReference.hpp"
 
 class Blockchain;
 class Block;
-class UTXOs;
+using UTXOs = std::unordered_map<PubKey, std::set<OutputReference>>;
 
 #define MAX_INPUTS 100
 #define MAX_OUTPUTS 50
@@ -33,7 +39,7 @@ private:
     /*Vérifie que la transaction est solvable*/
     const bool verifySold(const Blockchain& blockchain) const {return getFee(blockchain) >= 0;}
     /*Vérifie la signature de la transaction*/
-    const bool verifySignature(const Blockchain& blockchain) const {return crpto::verifySignature(getStrToSign(), signature, inputs[0].getOutput(blockchain).getPubKey());}
+    const bool verifySignature(const Blockchain& blockchain) const {return crypto::verifySignature(getStrToSign(), signature, inputs[0].getOutput(blockchain).getPubKey());}
 
 public:
     //Constructors
@@ -47,6 +53,9 @@ public:
         return Transaction({}, {rewardOutput});
     }
 
+    bool operator<(const Transaction& other) const {
+        return std::tie(inputs, signature) < std::tie(other.inputs, other.signature);
+    }
     //Getters
     const Inputs& getInputs() const { return inputs; }
     const Outputs& getOutputs() const { return outputs; }
@@ -54,7 +63,7 @@ public:
     const std::string getStrToSign() const;
 
     //Signature methods
-    void sign(EVP_PKEY* privateKey) {signature = crpto::signData(this->getStrToSign(), privateKey);}
+    void sign(EVP_PKEY* privateKey) {signature = crypto::signData(this->getStrToSign(), privateKey);}
 
     /*Vérifie la validité de la transaction et ne valide pas une récompense de minage*/
     const bool verify(const Blockchain& blockchain, const UTXOs& unspentOutputs) const;

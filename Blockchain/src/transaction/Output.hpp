@@ -1,7 +1,8 @@
 #ifndef OUTPUT_HPP
 #define OUTPUT_HPP
 
-#include "cryptography/crypto.hpp"
+#include "test/crypto.hpp"
+#include <cereal/types/string.hpp>
 
 /*Cette classe représente l'Output de transaction*/
 class Output {
@@ -18,6 +19,7 @@ public:
     const PubKey& getPubKey() const { return pubKey; }
 
     const std::string toString() const;
+
 
     template<class Archive>
     void serialize(Archive& ar){

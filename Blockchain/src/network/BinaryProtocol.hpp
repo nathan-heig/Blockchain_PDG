@@ -29,12 +29,13 @@ static_assert(sizeof(MsgHeader) == 12, "MsgHeader size must be 12 bytes");
 
 enum class MsgType : uint8_t {
     VERSION = 1,
-    GET_BLOCK = 2,
-    BLOCK = 3,
-    GET_TXS = 4,
-    TXS = 5,
-    BROADCAST_TX = 6,
-    BROADCAST_BLOCK = 7,
+    ACK = 2,
+    GET_BLOCK = 3,
+    BLOCK = 4,
+    GET_TXS = 5,
+    TXS = 6,
+    BROADCAST_TX = 7,
+    BROADCAST_BLOCK = 8,
 };
 
 

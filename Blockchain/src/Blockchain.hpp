@@ -2,6 +2,7 @@
 #define BLOCKCHAIN_HPP
 
 #include "Block.hpp"
+#include "network/NodeNetwork.hpp"
 
 #include <unordered_map>
 #include <set>
@@ -9,7 +10,7 @@
 using UTXOs = std::unordered_map<PubKey, std::set<OutputReference>>;
 
 //en attendant d'avoir une classe pour ca
-using TransactionsPool = std::set<Transaction>; // retirer const pour serialisation
+using TransactionsPool = std::set<Transaction>;
 
 class Blockchain {
 private:
@@ -23,6 +24,8 @@ private:
     void deleteUnspentOutput(const PubKey& pubKey, const OutputReference& outputRef) {utxos[pubKey].erase(outputRef);}
 
 public:
+
+    NodeNetwork network{*this};
     // Constructor
     Blockchain(){}
 
