@@ -41,11 +41,13 @@ public:
             });
     }
 
-    void broadcastRaw(BinaryProtocol::MsgType type, const std::vector<uint8_t>& payload){
-        auto frame = BinaryProtocol::buildMessage(type, payload);
+    void buildAndbroadcastFrame(MsgType type, const std::vector<uint8_t>& payload){
+        auto frame = BinaryProtocol::buildFrame(type, payload);
         std::string s(reinterpret_cast<const char*>(frame.data()), frame.size());
-        for (auto& [peer, c] : peers_) c->send(s);
-        for (auto& c : incoming_) c->send(s);
+        for (auto& [peer, c] : peers_)
+            c->send(s);
+        for (auto& [peer, c] : incoming_)
+            c->send(s);
     }
 
 private:
@@ -57,7 +59,7 @@ private:
     std::thread thread_;
 
     std::unordered_map<PeerInfo, ConnPtr> peers_; // connexions sortantes
-    std::vector<ConnPtr> incoming_;
+    std::unordered_map<PeerInfo, ConnPtr> incoming_; // connexions entrantes
 
     void accept(){
         auto conn = std::make_shared<TcpConnection>(io_);
@@ -80,51 +82,76 @@ private:
         );
     }
 
+    void broadcastBack(const std::string& raw, const PeerInfo& exclude){
+        std::string s = raw;
+        for (auto& [peer, c] : peers_)
+            if (peer != exclude)
+                c->send(s);
+        for (auto& [peer, c] : incoming_)
+            if (peer != exclude)
+                c->send(s);
+    }
+
     void handleMessage(const PeerInfo& peer, const std::string& raw){
         // Un raw peut contenir exactement un frame (TcpConnection garantit framing length-only; ici header binaire custom) :
-        if (raw.size() < sizeof(BinaryProtocol::MsgHeader)) return;
-        std::vector<uint8_t> frame(raw.begin(), raw.end());
-        BinaryProtocol::MsgHeader h; const uint8_t* payload = nullptr;
+        if (raw.size() < sizeof(MsgHeader))
+            return;
+
+        Frame frame(raw.begin(), raw.end());
+        MsgHeader h;
+        const uint8_t* payload = nullptr;
         try {
             BinaryProtocol::parseFrame(frame, h, payload);
         } catch(...) {
             return; // drop
         }
-        auto type = static_cast<BinaryProtocol::MsgType>(h.type);
+
+        auto type = static_cast<MsgType>(h.type);
         switch(type){
-            case BinaryProtocol::MsgType::VERSION: {
-                // payload = struct Version { uint32_t height }
+            case MsgType::VERSION: {
                 if (h.length == sizeof(uint32_t)) {
                     uint32_t remoteSize; std::memcpy(&remoteSize, payload, sizeof(uint32_t));
-                    sendVersion(peer); // réponse symétrique
-                    sendInv(peer);
                     if (remoteSize > blockchain_.size())
-                        requestBlocks(peer, blockchain_.size());
+                        requestBlock(peer, blockchain_.size());
                 }
                 break;
             }
-            case BinaryProtocol::MsgType::INV: {
+            case MsgType::GET_BLOCK: {
                 if (h.length == sizeof(uint32_t)) {
-                    uint32_t best; std::memcpy(&best, payload, 4);
-                    if (best > blockchain_.size())
-                        requestBlocks(peer, blockchain_.size());
+                    uint32_t blockIdx; std::memcpy(&blockIdx, payload, sizeof(uint32_t));
+                    sendBlock(peer, blockIdx);
                 }
                 break;
             }
-            case BinaryProtocol::MsgType::PING: {
-                if (h.length == sizeof(uint64_t)) {
-                    // renvoyer PONG même nonce
-                    std::vector<uint8_t> pongPayload(payload, payload+sizeof(uint64_t));
-                    sendFrame(peer, BinaryProtocol::MsgType::PONG, pongPayload);
-                }
+            case MsgType::BLOCK: {
+                try {
+                    Block b = BinaryProtocol::deserializeObject<Block>(payload, h.length);
+
+                    // TODO: validation hors thread réseau
+                   blockchain_.addBlock(b);
+                } catch(...) {}
                 break;
             }
-            case BinaryProtocol::MsgType::PONG: {
-                // mesurer latence si on stocke timestamp
+            case MsgType::BROADCAST_TX: {
+
+                try {
+                    Transaction tx = BinaryProtocol::deserializeObject<Transaction>(payload, h.length);
+                    // TODO: validation hors thread réseau
+                    if (blockchain_.addPendingTransaction(tx)) {
+                        broadcastBack(raw, peer);
+                    }
+                } catch(...) {}
                 break;
             }
-            case BinaryProtocol::MsgType::GET_BLOCKS: {
-                // TODO: envoyer blocs manquants
+            case MsgType::BROADCAST_BLOCK: {
+
+                try {
+                    Block b = BinaryProtocol::deserializeObject<Block>(payload, h.length);
+                    // TODO: validation hors thread réseau
+                    if (blockchain_.addBlock(b)) {
+                        broadcastBack(raw, peer);
+                    }
+                } catch(...) {}
                 break;
             }
             default: break;
@@ -133,47 +160,35 @@ private:
 
     void handleDisconnect(const PeerInfo& peer){
         peers_.erase(peer); // pour outgoing
-        // incoming_ cleanup laissé simple (on garde l'objet jusqu'à GC vector)
     }
 
-    void sendFrame(const PeerInfo& peer, BinaryProtocol::MsgType type, const std::vector<uint8_t>& payload){
+    void buildAndSendFrame(const PeerInfo& peer, MsgType type, const std::vector<uint8_t>& payload){
         auto it = peers_.find(peer);
-        if (it == peers_.end()) return;
-        auto frame = BinaryProtocol::buildMessage(type, payload);
+        if (it == peers_.end())
+            return; //si le peer n'est pas trouvé
+        auto frame = BinaryProtocol::buildFrame(type, payload);
         std::string s(reinterpret_cast<const char*>(frame.data()), frame.size());
         it->second->send(s);
     }
 
     void sendVersion(const PeerInfo& peer){
         uint32_t height = blockchain_.size();
-        auto payload = std::vector<uint8_t>(sizeof(uint32_t));
-        std::memcpy(payload.data(), &height, 4);
-        sendFrame(peer, BinaryProtocol::MsgType::VERSION, payload);
+        auto payload = std::vector<uint8_t>(sizeof(height));
+        std::memcpy(payload.data(), &height, sizeof(height));
+        buildAndSendFrame(peer, MsgType::VERSION, payload);
     }
 
-    void sendInv(const PeerInfo& peer){
-        uint32_t height = blockchain_.size();
-        auto payload = std::vector<uint8_t>(sizeof(uint32_t));
-        std::memcpy(payload.data(), &height, 4);
-        sendFrame(peer, BinaryProtocol::MsgType::INV, payload);
+    void sendBlock(const PeerInfo& peer, uint32_t blockIdx){
+        const auto& block = blockchain_[blockIdx];
+        auto payload = BinaryProtocol::serializeObject<Block>(block);
+        buildAndSendFrame(peer, MsgType::BLOCK, payload);
+        
     }
 
-    void sendBlocks(const PeerInfo& peer, uint32_t lastIndex){
-        for (uint32_t i = 0; i <= lastIndex; ++i) {
-            const auto& block = blockchain_[i];
-
-            auto payload = std::vector<uint8_t>(sizeof(Block));
-
-
-            
-            sendFrame(peer, BinaryProtocol::MsgType::BLOCK, payload);
-        }
-    }
-
-    void requestBlocks(const PeerInfo& peer, uint32_t from){
-        auto payload = std::vector<uint8_t>(sizeof(uint32_t));
-        std::memcpy(payload.data(), &from, 4);
-        sendFrame(peer, BinaryProtocol::MsgType::GET_BLOCKS, payload);
+    void requestBlock(const PeerInfo& peer, uint32_t blockIdx){
+        auto payload = std::vector<uint8_t>(sizeof(blockIdx));
+        std::memcpy(payload.data(), &blockIdx, sizeof(blockIdx));
+        buildAndSendFrame(peer, MsgType::GET_BLOCK, payload);
     }
 };
 

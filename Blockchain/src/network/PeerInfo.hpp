@@ -27,6 +27,9 @@ public:
     bool operator==(const PeerInfo& other) const {
         return ip == other.ip && port == other.port;
     }
+    bool operator!=(const PeerInfo& other) const {
+        return !(*this == other);
+    }
 
     std::string toString() const {
         return ip + ":" + std::to_string(port);

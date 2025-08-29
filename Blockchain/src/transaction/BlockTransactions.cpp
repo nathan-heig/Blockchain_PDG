@@ -4,12 +4,15 @@
 
 BlockTransactions::BlockTransactions(const Blockchain& blockchain, const TransactionsPool& pool, const PubKey& minerPubKey) : txs() {
     double totalFees = 0.0;
-
     txs.reserve(MAX_TRANSACTIONS + 1);
 
-    for (size_t i = 0; i < txs.size(); ++i) {
-        totalFees += txs[i].getFee(blockchain);
-        this->txs.push_back(txs[i]);
+    size_t count = 0;
+    for (const auto& tx : pool) {
+        if (count >= MAX_TRANSACTIONS) break;
+        // TODO: vérifier via interface publique quand disponible
+        totalFees += tx.getFee(blockchain);
+        txs.push_back(tx);
+        ++count;
     }
 
     txs.push_back(Transaction::miningReward(minerPubKey, totalFees + Blockchain::getMiningRewardAt(blockchain.size())));

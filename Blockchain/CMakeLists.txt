@@ -6,6 +6,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Boost REQUIRED COMPONENTS system)
 
+# Ajouter cereal (header-only)
+include(FetchContent)
+FetchContent_Declare(
+    cereal
+    GIT_REPOSITORY https://github.com/USCiLab/cereal.git
+    GIT_TAG v1.3.2
+)
+FetchContent_MakeAvailable(cereal)
+
 add_library(blockchain_core
     src/Block.cpp
     src/Blockchain.cpp
@@ -16,7 +25,7 @@ add_library(blockchain_core
     src/transaction/Transaction.cpp
 )
 
-target_include_directories(blockchain_core PUBLIC src src/network)
+target_include_directories(blockchain_core PUBLIC src src/network ${cereal_SOURCE_DIR}/include)
 target_link_libraries(blockchain_core PUBLIC Boost::system)
 
 add_executable(blockchain_cli src/main.cpp)

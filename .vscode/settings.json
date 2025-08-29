@@ -74,6 +74,8 @@
         "future": "cpp",
         "shared_mutex": "cpp",
         "span": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "cfenv": "cpp",
+        "stdfloat": "cpp"
     }
 }

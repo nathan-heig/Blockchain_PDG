@@ -35,7 +35,7 @@ const bool Transaction::verifyInputs(const Blockchain& blockchain, const UTXOs& 
     }
 
     const PubKey pubKey = this->inputs[0].getOutput(blockchain).getPubKey();
-    for(const auto& input : inputs) {
+    for (const auto& input : inputs) {
         const Output& out = input.getOutput(blockchain);
         if (out.getValue() <= 0) {
             return false; // Output value must be positive

@@ -18,6 +18,7 @@ private:
 
 public:
     //Constructor
+    OutputReference() : blockIndex(0), txIndex(0), outputIndex(0) {} // pour désérialisation
     OutputReference(uint32_t blockIdx, uint16_t txIdx, uint16_t outIdx)
         : blockIndex(blockIdx), txIndex(txIdx), outputIndex(outIdx) {}
     
@@ -38,8 +39,13 @@ public:
         return oss.str();
     }
 
+    template<class Archive>
+    void serialize(Archive& ar){
+        ar(blockIndex, txIndex, outputIndex);
+    }
+
 };
-using Inputs = std::vector<const OutputReference>;
+using Inputs = std::vector<OutputReference>; // retirer const pour serialisation
 
 
 

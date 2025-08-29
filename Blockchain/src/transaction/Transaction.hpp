@@ -36,9 +36,10 @@ private:
     const bool verifySignature(const Blockchain& blockchain) const {return crpto::verifySignature(getStrToSign(), signature, inputs[0].getOutput(blockchain).getPubKey());}
 
 public:
-    //Constructor
-    Transaction(const Inputs&& inputs, Outputs&& outputs)
-        : inputs(std::move(inputs)), outputs(std::move(outputs)), signature() {}
+    //Constructors
+    Transaction() = default; // pour désérialisation
+    Transaction(Inputs inputsIn, Outputs outputsIn)
+        : inputs(std::move(inputsIn)), outputs(std::move(outputsIn)), signature() {}
 
     /*Crééer une transaction de récompense de minage*/
     static const Transaction miningReward(const PubKey& minerPubKey, const double reward) {
@@ -59,6 +60,12 @@ public:
     const bool verify(const Blockchain& blockchain, const UTXOs& unspentOutputs) const;
     /*Vérifie une récompense de minage*/
     const bool verifyMiningReward(const Blockchain& blockchain, const Block& block) const;
+
+    template<class Archive>
+    void serialize(Archive& ar){
+        // signature après inputs/outputs
+        ar(inputs, outputs, signature);
+    }
 };
 
 

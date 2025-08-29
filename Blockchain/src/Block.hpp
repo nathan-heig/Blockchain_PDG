@@ -25,7 +25,7 @@ private:
     Hash calculateHash() const {return crpto::hashData(std::to_string(index) + std::to_string(nonce));}//version test
     const bool hashMatchesDifficulty() const;
 
-    Block(){}
+    Block() = default; // pour désérialisation
 
 public:
 
@@ -45,6 +45,11 @@ public:
 
     /*Cette fonction vérifie la validité du bloc en s'assurant que le hash correspond à la difficulté et que les transactions sont valides.*/
     bool verify(const Blockchain& blockchain, const UTXOs& utxos) const;
+
+    template<class Archive>
+    void serialize(Archive& ar){
+        ar(index, nonce, timestamp, target, transactions, previousHash, hash);
+    }
 
 };
 

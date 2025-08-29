@@ -5,16 +5,15 @@
 
 #include <unordered_map>
 #include <set>
-#include "Node.hpp"
 
 using UTXOs = std::unordered_map<PubKey, std::set<OutputReference>>;
 
 //en attendant d'avoir une classe pour ca
-using TransactionsPool = std::set<const Transaction>;
+using TransactionsPool = std::set<Transaction>; // retirer const pour serialisation
 
 class Blockchain {
 private:
-    std::vector<const Block> blocks;//vecteur contenant les blocks de la blockchain
+    std::vector<Block> blocks;//vecteur contenant les blocks de la blockchain
     TransactionsPool pendingTransactions;//pool de transactions en attente
     UTXOs utxos;//output de transactions non dépensées (unspent transaction outputs)
 
@@ -40,6 +39,7 @@ public:
     //Operators
     /*Retourne une référence constante sur le bloc à l'index donné*/
     const Block& operator[](const size_t index) const {return blocks[index];}
+    Block& operator[](const size_t index) {return blocks[index];}
 
     //Setters
     /*Vérifie si le bloc est valide avant de l'ajouter à la blockchain et modifie la liste des sorties non dépensées*/
