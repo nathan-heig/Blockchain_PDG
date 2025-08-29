@@ -5,8 +5,9 @@
 
 #include <unordered_map>
 #include <set>
+#include "Node.hpp"
 
-using UTXOs = std::unordered_map<const PubKey, std::set<const OutputReference>>;
+using UTXOs = std::unordered_map<PubKey, std::set<OutputReference>>;
 
 //en attendant d'avoir une classe pour ca
 using TransactionsPool = std::set<const Transaction>;
@@ -24,7 +25,7 @@ private:
 
 public:
     // Constructor
-    Blockchain();
+    Blockchain(){}
 
     // Getters
     /*Retourne un object Transactions prêt a etre ajouté dans un bloc*/
@@ -39,7 +40,6 @@ public:
     //Operators
     /*Retourne une référence constante sur le bloc à l'index donné*/
     const Block& operator[](const size_t index) const {return blocks[index];}
-    bool operator>(const Blockchain& other) const {return blocks.size() > other.size();}
 
     //Setters
     /*Vérifie si le bloc est valide avant de l'ajouter à la blockchain et modifie la liste des sorties non dépensées*/

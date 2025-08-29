@@ -58,6 +58,22 @@
         "cinttypes": "cpp",
         "typeindex": "cpp",
         "typeinfo": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "csignal": "cpp",
+        "cstring": "cpp",
+        "any": "cpp",
+        "charconv": "cpp",
+        "chrono": "cpp",
+        "codecvt": "cpp",
+        "complex": "cpp",
+        "coroutine": "cpp",
+        "list": "cpp",
+        "map": "cpp",
+        "source_location": "cpp",
+        "format": "cpp",
+        "future": "cpp",
+        "shared_mutex": "cpp",
+        "span": "cpp",
+        "variant": "cpp"
     }
 }
