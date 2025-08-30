@@ -2,12 +2,12 @@
 #include "Blockchain.hpp"
 
 
-BlockTransactions::BlockTransactions(const Blockchain& blockchain, const TransactionsPool& pool, const PubKey& minerPubKey) : txs() {
+BlockTransactions::BlockTransactions(const Blockchain& blockchain, const TransactionPool& pool, const PubKey& minerPubKey) : txs() {
     double totalFees = 0.0;
     txs.reserve(MAX_TRANSACTIONS + 1);
 
     size_t count = 0;
-    for (const auto& tx : pool) {
+    for (const auto& tx : pool.getTransactions()) {
         if (count >= MAX_TRANSACTIONS) break;
         // TODO: vérifier via interface publique quand disponible
         totalFees += tx.getFee(blockchain);

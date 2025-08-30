@@ -4,13 +4,12 @@
 
 #include <vector>
 #include <set>
-#include "Transaction.hpp"
-
 #include <cereal/types/vector.hpp>
+
+#include "transaction/TransactionPool.hpp"
 
 #define MAX_TRANSACTIONS 10
 
-using TransactionsPool = std::set<Transaction>;
 
 /*Cette object représente un ensemble de transactions à inclure dans un bloc. Elle est responsable de verifier la validité des transactions et de gerer les récompense de minage.*/
 class BlockTransactions {
@@ -20,7 +19,7 @@ private:
 public:
 
     BlockTransactions() = default;
-    BlockTransactions(const Blockchain& blockchain, const TransactionsPool& pool, const PubKey& minerPubKey);
+    BlockTransactions(const Blockchain& blockchain, const TransactionPool& pool, const PubKey& minerPubKey);
 
     static double calculateMinerReward(const Blockchain& blockchain, const Block& block);
 

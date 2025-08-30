@@ -3,6 +3,8 @@
 
 
 Block Block::createBlock(const Blockchain& blockchain, const PubKey& minerPubKey) {
+
+
     Block block;
     block.index = blockchain.size();
     block.timestamp = static_cast<uint32_t>(time(nullptr));
@@ -16,7 +18,7 @@ Block Block::createBlock(const Blockchain& blockchain, const PubKey& minerPubKey
     do {
         ++block.nonce;
         block.hash = block.calculateHash();
-    } while (!block.hashMatchesDifficulty());
+    } while (!block.hashMatchesDifficulty() && (block.index == blockchain.size()));
 
     return block;
 }

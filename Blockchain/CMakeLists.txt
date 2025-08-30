@@ -16,6 +16,7 @@ add_library(blockchain_core
     src/transaction/Output.cpp
     src/transaction/OutputReference.cpp
     src/transaction/Transaction.cpp
+    src/transaction/TransactionPool.cpp
     src/network/NodeNetwork.cpp
     src/test/crypto.cpp
 )
