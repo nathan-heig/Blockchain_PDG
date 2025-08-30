@@ -2,6 +2,38 @@
 #include "Blockchain.hpp"
 
 
+
+
+
+const Transaction Transaction::create(EVP_PKEY* fromPrivKey, const PubKey& toPubKey, double amount, double fee, const Blockchain& blockchain){
+
+    const PubKey fromPubKey = crypto::getPubKey(fromPrivKey);
+
+    if (blockchain.getWalletBalance(fromPubKey) < amount + fee) {
+        throw std::runtime_error("Insufficient balance");
+    }
+
+    Inputs inputs;
+    double totalBalance = 0.0;
+    for( OutputReference outRef : blockchain.getUTXOs().at(fromPubKey)) {
+        inputs.push_back(outRef);
+        totalBalance += outRef.getOutput(blockchain).getValue();
+        if (totalBalance >= amount + fee) break;
+    }
+
+    Outputs outputs;
+    outputs.push_back(Output(amount, toPubKey));
+    double change = totalBalance - amount - fee;
+    if (change > 0) {
+        outputs.push_back(Output(change, fromPubKey));
+    }
+
+    auto tx = Transaction(inputs, outputs);
+    tx.sign(fromPrivKey);
+    return tx;
+}
+
+
 bool TransactionPool::addTransaction(const Transaction& tx){
     if (!tx.verify(blockchain_, blockchain_.getUTXOs())) { // vérification basique
         return false;

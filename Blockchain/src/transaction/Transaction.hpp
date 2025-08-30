@@ -19,8 +19,8 @@ class Blockchain;
 class Block;
 using UTXOs = std::unordered_map<PubKey, std::set<OutputReference>>;
 
-#define MAX_INPUTS 100
-#define MAX_OUTPUTS 50
+#define MAX_INPUTS 200
+#define MAX_OUTPUTS 20
 
 
 
@@ -52,6 +52,8 @@ public:
         Output rewardOutput(reward, minerPubKey);
         return Transaction({}, {rewardOutput});
     }
+    /*Créer une transaction signée*/
+    static const Transaction create(EVP_PKEY* fromPrivKey, const PubKey& toPubKey, double amount, double fee, const Blockchain& blockchain);
 
     bool operator<(const Transaction& other) const {
         return std::tie(inputs, signature) < std::tie(other.inputs, other.signature);
