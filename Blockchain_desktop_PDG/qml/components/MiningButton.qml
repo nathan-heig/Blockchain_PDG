@@ -4,10 +4,8 @@ import "../styles"
 
 Button {
     id: root
-
     property bool isMining: false
-
-    text: isMining ? "Mining en cours..." : "Mining en cours..."
+    text: isMining ? "Mining en cours..." : "Mining en cours..." //a modifier
 
     background: Rectangle {
         radius: Theme.radius
