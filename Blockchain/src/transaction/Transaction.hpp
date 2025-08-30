@@ -14,10 +14,10 @@
 
 #include "test/crypto.hpp"
 #include "OutputReference.hpp"
+#include "transaction/UTXOs.hpp"
 
 class Blockchain;
 class Block;
-using UTXOs = std::unordered_map<PubKey, std::set<OutputReference>>;
 
 #define MAX_INPUTS 200
 #define MAX_OUTPUTS 20

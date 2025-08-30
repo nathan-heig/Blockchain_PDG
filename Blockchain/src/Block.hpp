@@ -14,6 +14,32 @@ struct Target{
     uint8_t value;
     uint8_t max;
 
+    static Target createInitialTarget() {
+        return Target{3, 128};
+    }
+    inline static const uint8_t sizePerStep = 8;
+
+    void augmenterDifficulte(int step) {
+        if (max <= step * sizePerStep) {
+            if (value < 32) {
+                value++;
+                max = 255 - ((step * sizePerStep) - max);
+            }
+        } else {
+            max -= step * sizePerStep;
+        }
+    }
+    void diminuerDifficulte(int step) {
+        if (max + step * sizePerStep >= 256) {
+            if (value > 0) {
+                value--;
+                max = (max + step * sizePerStep) - 256;
+            }
+        } else {
+            max += step * sizePerStep;
+        }
+    }
+
     template<class Archive>
     void serialize(Archive& ar) {
         ar(value, max);
@@ -68,6 +94,7 @@ public:
     const Hash& getPreviousHash() const { return previousHash; }
     const Hash& getHash() const { return hash; }
     const BlockTransactions& getBlockTransactions() const {return transactions;}
+    const Target& getTarget() const { return target; }
 
     /*Cette fonction vérifie la validité du bloc en s'assurant que le hash correspond à la difficulté et que les transactions sont valides.*/
     bool verify(const Blockchain& blockchain, const UTXOs& utxos) const;

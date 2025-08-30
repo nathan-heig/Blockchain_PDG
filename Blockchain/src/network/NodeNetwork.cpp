@@ -68,7 +68,6 @@ void NodeNetwork::handleMessage(const PeerInfo& peer, const std::string& raw){
                 Block b = BinaryProtocol::deserializeObject<Block>(payload, h.length);
 
 
-                // TODO: validation hors thread réseau
                 if(blockchain_.addBlock(b)) {
                     if(h.localSize > blockchain_.size()){
                         requestBlock(peer, blockchain_.size());
@@ -83,11 +82,9 @@ void NodeNetwork::handleMessage(const PeerInfo& peer, const std::string& raw){
 
             try {
                 Transaction tx = BinaryProtocol::deserializeObject<Transaction>(payload, h.length);
-                // TODO: validation hors thread réseau
+
                 if (blockchain_.getTransactionPool().addTransaction(tx)) {
-                    {
-                        broadcastBack(raw, peer);
-                    }
+                    broadcastBack(raw, peer);
                 }
             } catch(...) {}
             break;
@@ -96,7 +93,7 @@ void NodeNetwork::handleMessage(const PeerInfo& peer, const std::string& raw){
 
             try {
                 Block b = BinaryProtocol::deserializeObject<Block>(payload, h.length);
-                // TODO: validation hors thread réseau
+
                 if (blockchain_.addBlock(b)) {
                     broadcastBack(raw, peer);
                 } else if (h.localSize > blockchain_.size() + 1) {
