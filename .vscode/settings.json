@@ -88,7 +88,8 @@
         "netfwd": "cpp",
         "socket": "cpp",
         "timer": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "regex": "cpp"
     },
     "cmake.sourceDirectory": "/home/nat/documents/HEIG_VD/Blockchain_PDG/Blockchain"
 }

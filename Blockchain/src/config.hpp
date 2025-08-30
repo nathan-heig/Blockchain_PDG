@@ -1,1 +1,2 @@
 #define LISTEN_PORT 8185
+#define MINING_DIFFICULTY 2

@@ -6,9 +6,9 @@ const double Blockchain::getMiningRewardAt(uint32_t index) {
     return 1000;
 }
 
-const double Blockchain::getTargetAt(uint32_t index) const {
+const Target Blockchain::getTargetAt(uint32_t index) const {
     // version simplifiée pour l'instant
-    return 2;
+    return Target{2, 32};
 }
 
 

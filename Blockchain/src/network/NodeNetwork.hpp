@@ -4,6 +4,10 @@
 #include <boost/asio.hpp>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
+#include <mutex>
+#include <chrono>
+#include <semaphore>
 #include <random>
 #include "TcpConnection.hpp"
 #include "PeerInfo.hpp"
@@ -26,8 +30,9 @@ public:
 
     /*Lance un thread qui gère le réseau*/
     void start() {
-        openPort();
-        accept();
+        if (openPort()) {
+            accept();
+        }
         thread_ = std::thread([this]{ io_.run(); });
     }
     void stop() {
@@ -68,6 +73,13 @@ private:
     std::unordered_map<PeerInfo, ConnPtr> peers_; // connexions sortantes
     std::unordered_map<PeerInfo, ConnPtr> incoming_; // connexions entrantes
 
+    bool isSyncing_ = false;
+    bool finishedRetrieve_ = false;
+    
+    // Sémaphores pour la synchronisation
+    std::binary_semaphore semaphore1_{1}; // semaphore (1)
+    std::binary_semaphore semaphore2_{1}; // semaphore (2)
+
     void accept(){
         auto conn = std::make_shared<TcpConnection>(io_);
         acceptor_.async_accept(conn->socketRef(), [this, conn](auto ec){
@@ -83,8 +95,8 @@ private:
     void setupCallbacks(const PeerInfo& peer, const ConnPtr& conn){
         auto self = this;
         conn->start(
-            [this, peer](const std::string& msg){ handleMessage(peer, msg); },
-            [this, peer]{ handleDisconnect(peer); }
+            [this, &peer](const std::string& msg){ handleMessage(peer, msg); },
+            [this, &peer]{ handleDisconnect(peer); }
         );
     }
 
@@ -102,8 +114,11 @@ private:
     void sendBlock(const PeerInfo& peer, uint32_t blockIdx);
 
     void requestBlock(const PeerInfo& peer, uint32_t blockIdx);
+    void requestBlocks(const PeerInfo& peer, uint32_t remoteSize);
 
-    void openPort() {
+    bool openPort() {
+        bool success = true;
+
         UPNPDev* devlist = nullptr;
         std::string lanaddr(64, '\0');
 
@@ -116,7 +131,8 @@ private:
         freeUPNPDevlist(devlist);
 
         if (error != 1) {
-            std::cout << "Failed to get IGD" << std::endl;
+            //std::cout << "Failed to get IGD" << std::endl;
+            success = false;
         }
 
         std::string port_str = std::to_string(listenPort_);
@@ -124,10 +140,20 @@ private:
                                     port_str.c_str(), port_str.c_str(), lanaddr.c_str(), "Blockchain", "TCP", nullptr, "0");
 
         if (error != UPNPCOMMAND_SUCCESS) {
-            std::cout << "Failed to add port mapping" << std::endl;
+            //std::cout << "Failed to add port mapping" << std::endl;
+            success = false;
         }
 
         FreeUPNPUrls(&urls);
+
+        if (success) {
+            std::cout << "Successfully opened port, listening on " << listenPort_ << std::endl;
+        } else {
+            std::cout << "Failed to open port" << std::endl;
+            listenPort_ = 0;
+        }
+
+        return success;
     }
     void closePort() {
         UPNPDev* devlist = nullptr;

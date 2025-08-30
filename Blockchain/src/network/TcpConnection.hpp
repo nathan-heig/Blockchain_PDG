@@ -45,7 +45,7 @@ private:
     std::deque<std::string> outQueue;
     OnMessage onMessage;
     OnClose onClose;
-    static constexpr uint32_t kMax = 1024 * 1024; // 1MB
+    static constexpr uint32_t kMax = 1024 * 1024 * 10; // 10MB
 
     void readHeader() {
         auto self = shared_from_this();

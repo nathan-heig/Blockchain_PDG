@@ -1,5 +1,7 @@
 #include "NodeNetwork.hpp"
 #include "Blockchain.hpp"
+#include <iostream>
+#include <chrono>
 
 
 void NodeNetwork::broadcastBack(const std::string& raw, const PeerInfo& exclude){
@@ -36,7 +38,7 @@ void NodeNetwork::handleMessage(const PeerInfo& peer, const std::string& raw){
                 uint16_t remoteListeningPort;
                 std::memcpy(&remoteListeningPort, payload + sizeof(uint32_t), sizeof(uint16_t));
                 if (remoteSize > blockchain_.size())
-                    requestBlock(peer, blockchain_.size());
+                    requestBlocks(peer, remoteSize);
             }
             break;
         }
@@ -47,7 +49,7 @@ void NodeNetwork::handleMessage(const PeerInfo& peer, const std::string& raw){
                 uint16_t remoteListeningPort;
                 std::memcpy(&remoteListeningPort, payload + sizeof(uint32_t), sizeof(uint16_t));
                 if (remoteSize > blockchain_.size())
-                    requestBlock(peer, blockchain_.size());
+                    requestBlocks(peer, remoteSize);
             }
             break;
         }
@@ -63,8 +65,23 @@ void NodeNetwork::handleMessage(const PeerInfo& peer, const std::string& raw){
                 Block b = BinaryProtocol::deserializeObject<Block>(payload, h.length);
 
                 // TODO: validation hors thread réseau
-                blockchain_.addBlock(b);
-            } catch(...) {}
+                if(blockchain_.addBlock(b)) {
+                    if(not finishedRetrieve_){
+                        finishedRetrieve_ = false;
+                        semaphore2_.release();
+                    }
+                } else {
+                    if(not finishedRetrieve_){
+                        finishedRetrieve_ = true;
+                        semaphore2_.release();
+                    }
+                }
+            } catch(...) {
+                //finished retrieve = true (en cas d'erreur)
+                finishedRetrieve_ = true;
+                //release semaphore (2)
+                semaphore2_.release();
+            }
             break;
         }
         case MsgType::BROADCAST_TX: {
@@ -136,4 +153,29 @@ void NodeNetwork::requestBlock(const PeerInfo& peer, uint32_t blockIdx){
     auto payload = std::vector<uint8_t>(sizeof(blockIdx));
     std::memcpy(payload.data(), &blockIdx, sizeof(blockIdx));
     buildAndSendFrame(peer, MsgType::GET_BLOCK, payload);
+}
+
+void NodeNetwork::requestBlocks(const PeerInfo& peer, uint32_t remoteSize){
+    semaphore1_.acquire();
+    
+    finishedRetrieve_ = false;
+    
+    for(uint32_t i = blockchain_.size(); i < remoteSize; ++i){
+        requestBlock(peer, i);
+
+        // Attendre la réponse avec un timeout de 7 secondes
+        if(semaphore2_.try_acquire_for(std::chrono::seconds(7))) {
+            // Bloc reçu dans les temps
+            if(finishedRetrieve_) {
+                break;
+            }
+        } else {
+            // Timeout - le peer ne répond pas
+            std::cout << "Timeout lors de la demande du bloc " << i << " au peer " << peer.getIp() << std::endl;
+            finishedRetrieve_ = true;
+            semaphore2_.release();
+            break;
+        }
+    }
+    semaphore1_.release();
 }

@@ -3,6 +3,7 @@
 
 #include "Block.hpp"
 #include "network/NodeNetwork.hpp"
+#include "config.hpp"
 
 #include <unordered_map>
 #include <set>
@@ -35,14 +36,13 @@ public:
     /*Retourne le mining reward a un index donné*/
     static const double getMiningRewardAt(uint32_t index);
     /*Retourne la difficulté à un index donné en se basent sur le temps des blocks precedants l'index*/
-    const double getTargetAt(uint32_t index) const;
+    const Target getTargetAt(uint32_t index) const;
     /*Retourne le nombre de blocs dans la blockchain*/
-    size_t size() const {return blocks.size();}
+    uint32_t size() const {return blocks.size();}
 
     //Operators
     /*Retourne une référence constante sur le bloc à l'index donné*/
     const Block& operator[](const size_t index) const {return blocks[index];}
-    Block& operator[](const size_t index) {return blocks[index];}
 
     //Setters
     /*Vérifie si le bloc est valide avant de l'ajouter à la blockchain et modifie la liste des sorties non dépensées*/
@@ -52,6 +52,14 @@ public:
 
 
     //Fonctions
+    double getWalletBalance(const PubKey& pubKey) const{
+        double balance = 0.0;
+        // Ajouter les sorties non dépensées
+        for (const auto& outputRef : utxos.at(pubKey)) {
+            balance += outputRef.getOutput(*this).getValue();
+        }
+        return balance;
+    }
 
 
 };

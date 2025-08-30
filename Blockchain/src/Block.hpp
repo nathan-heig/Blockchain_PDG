@@ -5,8 +5,20 @@
 #include "transaction/BlockTransactions.hpp"
 #include <cereal/types/vector.hpp>
 #include <cereal/types/string.hpp>
+#include <cereal/archives/binary.hpp>
+#include <sstream>
 
 class Blockchain;
+
+struct Target{
+    uint8_t value;
+    uint8_t max;
+
+    template<class Archive>
+    void serialize(Archive& ar) {
+        ar(value, max);
+    }
+};
 
 
 class Block {
@@ -16,15 +28,27 @@ private:
     uint32_t nonce;
 
     uint32_t timestamp;
-    uint8_t target;
+    Target target;
 
     BlockTransactions transactions;
 
     Hash previousHash;
     Hash hash;
 
+    template<typename Archive>
+    void serialize_without_hash(Archive& ar) const {
+        ar(index, nonce, timestamp, target, transactions, previousHash);
+    }
+
     // Fonctions
-    Hash calculateHash() const {return crypto::hashData(std::to_string(index) + std::to_string(nonce));}//version test
+    Hash calculateHash() const {
+        std::ostringstream oss(std::ios::binary);
+        {
+            cereal::BinaryOutputArchive ar(oss);
+            serialize_without_hash(ar); // sérialise tous les champs sauf 'hash'
+        }
+        return crypto::hashData(oss.str());
+    }
     const bool hashMatchesDifficulty() const;
 
 public:

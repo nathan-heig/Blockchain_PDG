@@ -22,14 +22,17 @@ Block Block::createBlock(const Blockchain& blockchain, const PubKey& minerPubKey
 }
 
 const bool Block::hashMatchesDifficulty() const {
-    for (uint8_t i = 0; i < target; ++i) {
-        if (hash[i] != '0') {
+    for (uint8_t i = 0; i < target.value; ++i) {
+        if (hash[i] != 0) {
             return false;
         }
+    }
+    if (static_cast<uint8_t>(hash[target.value]) > target.max) {
+        return false;
     }
     return true;
 }
 
 bool Block::verify(const Blockchain& blockchain, const UTXOs& utxos) const {
-    return (calculateHash() == hash) && hashMatchesDifficulty() && transactions.verify(blockchain, *this, utxos) && (index == 0 || previousHash == blockchain[index - 1].getHash());
+    return index == blockchain.size() && (calculateHash() == hash) && hashMatchesDifficulty() && transactions.verify(blockchain, *this, utxos) && (index == 0 || previousHash == blockchain[index - 1].getHash());
 }
