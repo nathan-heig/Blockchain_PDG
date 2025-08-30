@@ -34,5 +34,6 @@ const bool Block::hashMatchesDifficulty() const {
 }
 
 bool Block::verify(const Blockchain& blockchain, const UTXOs& utxos) const {
+    if(index == 0) return true;
     return index == blockchain.size() && (calculateHash() == hash) && hashMatchesDifficulty() && transactions.verify(blockchain, *this, utxos) && (index == 0 || previousHash == blockchain[index - 1].getHash());
 }

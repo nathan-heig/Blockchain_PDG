@@ -31,25 +31,28 @@ void NodeNetwork::handleMessage(const PeerInfo& peer, const std::string& raw){
     auto type = static_cast<MsgType>(h.type);
     switch(type){
         case MsgType::VERSION: {
-            if (h.length == sizeof(uint32_t) + sizeof(uint16_t)) {
-                sendAck(peer);//accepte la connection
-                uint32_t remoteSize;
-                std::memcpy(&remoteSize, payload, sizeof(uint32_t));
+            if (h.length == sizeof(uint16_t)) {
+                std::cout << "Received VERSION message" << std::endl;
                 uint16_t remoteListeningPort;
                 std::memcpy(&remoteListeningPort, payload + sizeof(uint32_t), sizeof(uint16_t));
-                if (remoteSize > blockchain_.size())
-                    requestBlocks(peer, remoteSize);
+
+
+                if (h.localSize > blockchain_.size())
+                    requestBlock(peer, blockchain_.size());
+
+                sendAck(peer);
             }
             break;
         }
         case MsgType::ACK: {
-            if (h.length == sizeof(uint32_t) + sizeof(uint16_t)) {
-                uint32_t remoteSize;
-                std::memcpy(&remoteSize, payload, sizeof(uint32_t));
+            if (h.length == sizeof(uint16_t)) {
+                std::cout << "Received ACK message" << std::endl;
                 uint16_t remoteListeningPort;
                 std::memcpy(&remoteListeningPort, payload + sizeof(uint32_t), sizeof(uint16_t));
-                if (remoteSize > blockchain_.size())
-                    requestBlocks(peer, remoteSize);
+
+                if (h.localSize > blockchain_.size())
+                    requestBlock(peer, blockchain_.size());
+
             }
             break;
         }
@@ -64,24 +67,16 @@ void NodeNetwork::handleMessage(const PeerInfo& peer, const std::string& raw){
             try {
                 Block b = BinaryProtocol::deserializeObject<Block>(payload, h.length);
 
+
                 // TODO: validation hors thread réseau
                 if(blockchain_.addBlock(b)) {
-                    if(not finishedRetrieve_){
-                        finishedRetrieve_ = false;
-                        semaphore2_.release();
-                    }
-                } else {
-                    if(not finishedRetrieve_){
-                        finishedRetrieve_ = true;
-                        semaphore2_.release();
+                    if(h.localSize > blockchain_.size()){
+                        requestBlock(peer, blockchain_.size());
+                    }else{
+                        // TODO: gérer le cas où la taille locale est suffisante
                     }
                 }
-            } catch(...) {
-                //finished retrieve = true (en cas d'erreur)
-                finishedRetrieve_ = true;
-                //release semaphore (2)
-                semaphore2_.release();
-            }
+            } catch(...) {}
             break;
         }
         case MsgType::BROADCAST_TX: {
@@ -117,28 +112,28 @@ void NodeNetwork::handleDisconnect(const PeerInfo& peer){
 
 void NodeNetwork::buildAndSendFrame(const PeerInfo& peer, MsgType type, const std::vector<uint8_t>& payload){
     auto it = peers_.find(peer);
-    if (it == peers_.end())
-        return; //si le peer n'est pas trouvé
-    auto frame = BinaryProtocol::buildFrame(type, payload);
+    if (it == peers_.end()){
+        it = incoming_.find(peer);
+        if (it == incoming_.end())
+            return; // si le peer n'est pas trouvé
+    }
+
+    auto frame = BinaryProtocol::buildFrame(type, blockchain_.size(), payload);
     std::string s(reinterpret_cast<const char*>(frame.data()), frame.size());
     it->second->send(s);
 }
 
 void NodeNetwork::sendVersion(const PeerInfo& peer){
-    uint32_t height = blockchain_.size();
     uint16_t listeningPort = listenPort_;
-    auto payload = std::vector<uint8_t>(sizeof(height) + sizeof(listeningPort));
-    std::memcpy(payload.data(), &height, sizeof(height));
-    std::memcpy(payload.data() + sizeof(height), &listeningPort, sizeof(listeningPort));
+    auto payload = std::vector<uint8_t>(sizeof(listeningPort));
+    std::memcpy(payload.data(), &listeningPort, sizeof(listeningPort));
     buildAndSendFrame(peer, MsgType::VERSION, payload);
 }
 
 void NodeNetwork::sendAck(const PeerInfo& peer){
-    uint32_t height = blockchain_.size();
     uint16_t listeningPort = listenPort_;
-    auto payload = std::vector<uint8_t>(sizeof(height) + sizeof(listeningPort));
-    std::memcpy(payload.data(), &height, sizeof(height));
-    std::memcpy(payload.data() + sizeof(height), &listeningPort, sizeof(listeningPort));
+    auto payload = std::vector<uint8_t>(sizeof(listeningPort));
+    std::memcpy(payload.data(), &listeningPort, sizeof(listeningPort));
     buildAndSendFrame(peer, MsgType::ACK, payload);
 }
 
@@ -146,36 +141,22 @@ void NodeNetwork::sendBlock(const PeerInfo& peer, uint32_t blockIdx){
     const auto& block = blockchain_[blockIdx];
     auto payload = BinaryProtocol::serializeObject<Block>(block);
     buildAndSendFrame(peer, MsgType::BLOCK, payload);
-    
 }
 
 void NodeNetwork::requestBlock(const PeerInfo& peer, uint32_t blockIdx){
+    std::cout << "Requesting block " << blockIdx << " from peer " << peer.getIp() << std::endl;
+
     auto payload = std::vector<uint8_t>(sizeof(blockIdx));
     std::memcpy(payload.data(), &blockIdx, sizeof(blockIdx));
     buildAndSendFrame(peer, MsgType::GET_BLOCK, payload);
 }
 
-void NodeNetwork::requestBlocks(const PeerInfo& peer, uint32_t remoteSize){
-    semaphore1_.acquire();
-    
-    finishedRetrieve_ = false;
-    
-    for(uint32_t i = blockchain_.size(); i < remoteSize; ++i){
-        requestBlock(peer, i);
 
-        // Attendre la réponse avec un timeout de 7 secondes
-        if(semaphore2_.try_acquire_for(std::chrono::seconds(7))) {
-            // Bloc reçu dans les temps
-            if(finishedRetrieve_) {
-                break;
-            }
-        } else {
-            // Timeout - le peer ne répond pas
-            std::cout << "Timeout lors de la demande du bloc " << i << " au peer " << peer.getIp() << std::endl;
-            finishedRetrieve_ = true;
-            semaphore2_.release();
-            break;
-        }
-    }
-    semaphore1_.release();
+void NodeNetwork::buildFrameAndbroadcast(MsgType type, const std::vector<uint8_t>& payload){
+    auto frame = BinaryProtocol::buildFrame(type, blockchain_.size(), payload);
+    std::string s(reinterpret_cast<const char*>(frame.data()), frame.size());
+    for (auto& [peer, c] : peers_)
+        c->send(s);
+    for (auto& [peer, c] : incoming_)
+        c->send(s);
 }

@@ -8,10 +8,12 @@ int main()
 
     blockchain.network.start();
 
+    blockchain.network.connect(PeerInfo("127.0.0.1", 8185));
 
     while (true) {
-        blockchain.addBlock(Block::createBlock(blockchain, "test"));
-        std::cout << "Blockchain size: " << blockchain.size() << " blocks." <<  blockchain.getWalletBalance("test") << std::endl;
+        std::cout << "Blockchain size: " << blockchain.size() << " blocks." << std::endl; // <<  blockchain.getWalletBalance("test") << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(4));
+        //blockchain.addBlock(Block::createBlock(blockchain, "miner1"));
     }
 
     return 0;

@@ -13,8 +13,8 @@
 /*Une frame contient une entete (MsgHeader) et un payload*/
 using Frame = std::vector<uint8_t>;
 
-// En-tête binaire fixe : magic(2) | version(1) | type(1) | length(4) | checksum(4)
-// Total 12 octets (sans padding). length = taille du payload (hors header).
+// En-tête binaire fixe : magic(2) | version(1) | type(1) | length(4) | checksum(4) | localSize(4)
+// Total 14 octets (sans padding). length = taille du payload (hors header).
 #pragma pack(push,1)
 struct MsgHeader {
     uint16_t magic = 0xB17E;    // identifiant protocole (unifié)
@@ -22,10 +22,11 @@ struct MsgHeader {
     uint8_t  type = 0;          // code message
     uint32_t length = 0;        // taille payload
     uint32_t checksum = 0;      // checksum pour vérifier l'intégrité
+    uint32_t localSize = 0;     // taille locale de la blockchain
 };
 #pragma pack(pop)
 
-static_assert(sizeof(MsgHeader) == 12, "MsgHeader size must be 12 bytes");
+static_assert(sizeof(MsgHeader) == 16, "MsgHeader size must be 16 bytes");
 
 enum class MsgType : uint8_t {
     VERSION = 1,
@@ -54,11 +55,12 @@ namespace BinaryProtocol {
 
 
     // Encapsulation d'un message complet en binaire (header + payload)
-    inline Frame buildFrame(MsgType type, const std::vector<uint8_t>& payload){
+    inline Frame buildFrame(MsgType type, uint32_t localSize, const std::vector<uint8_t>& payload){
         MsgHeader h; 
         h.type = static_cast<uint8_t>(type); 
         h.length = static_cast<uint32_t>(payload.size());
         h.checksum = simpleChecksum(payload.data(), payload.size());
+        h.localSize = localSize;
 
         std::vector<uint8_t> frame(sizeof(MsgHeader) + payload.size());
         std::memcpy(frame.data(), &h, sizeof(MsgHeader));

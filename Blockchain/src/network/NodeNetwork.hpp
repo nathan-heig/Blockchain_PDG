@@ -53,13 +53,12 @@ public:
             });
     }
 
-    void buildAndbroadcastFrame(MsgType type, const std::vector<uint8_t>& payload){
-        auto frame = BinaryProtocol::buildFrame(type, payload);
-        std::string s(reinterpret_cast<const char*>(frame.data()), frame.size());
-        for (auto& [peer, c] : peers_)
-            c->send(s);
-        for (auto& [peer, c] : incoming_)
-            c->send(s);
+    void buildFrameAndbroadcast(MsgType type, const std::vector<uint8_t>& payload);
+
+    template<typename T>
+    void buildFrameAndbroadcast(MsgType type, const T& obj) {
+        auto payload = BinaryProtocol::serializeObject(obj);
+        buildFrameAndbroadcast(type, payload);
     }
 
 private:
@@ -72,13 +71,9 @@ private:
 
     std::unordered_map<PeerInfo, ConnPtr> peers_; // connexions sortantes
     std::unordered_map<PeerInfo, ConnPtr> incoming_; // connexions entrantes
+    std::unordered_map<PeerInfo, uint32_t> peersSize_;
 
-    bool isSyncing_ = false;
-    bool finishedRetrieve_ = false;
     
-    // Sémaphores pour la synchronisation
-    std::binary_semaphore semaphore1_{1}; // semaphore (1)
-    std::binary_semaphore semaphore2_{1}; // semaphore (2)
 
     void accept(){
         auto conn = std::make_shared<TcpConnection>(io_);
@@ -87,6 +82,10 @@ private:
                 PeerInfo p(conn->socketRef().remote_endpoint().address().to_string(), conn->socketRef().remote_endpoint().port());
                 incoming_[p] = conn;
                 setupCallbacks(p, conn);
+                std::cout << "New incoming connection from: " << p.getIp() << ":" << p.getPort() << std::endl;
+            }
+            else{
+                std::cerr << "Accept error: " << ec.message() << std::endl;
             }
             accept();
         });
@@ -95,8 +94,8 @@ private:
     void setupCallbacks(const PeerInfo& peer, const ConnPtr& conn){
         auto self = this;
         conn->start(
-            [this, &peer](const std::string& msg){ handleMessage(peer, msg); },
-            [this, &peer]{ handleDisconnect(peer); }
+            [this, peer](const std::string& msg){ handleMessage(peer, msg); },
+            [this, peer]{ handleDisconnect(peer); }
         );
     }
 
@@ -114,7 +113,6 @@ private:
     void sendBlock(const PeerInfo& peer, uint32_t blockIdx);
 
     void requestBlock(const PeerInfo& peer, uint32_t blockIdx);
-    void requestBlocks(const PeerInfo& peer, uint32_t remoteSize);
 
     bool openPort() {
         bool success = true;
