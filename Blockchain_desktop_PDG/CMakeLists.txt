@@ -8,6 +8,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Quick QuickControls2 Qml Core5Compat Test)
+find_package(Boost REQUIRED COMPONENTS system)
+add_subdirectory(../Blockchain ${CMAKE_CURRENT_BINARY_DIR}/blockchain_core_build)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
@@ -47,6 +49,11 @@ set_target_properties(appBlockchain_desktop_PDG PROPERTIES
 )
 
 # Installation rules for deployment
+target_link_libraries(appBlockchain_desktop_PDG
+    PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::Qml Qt6::Core5Compat blockchain_core Boost::system
+)
+
+include(GNUInstallDirs)
 install(TARGETS appBlockchain_desktop_PDG
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
