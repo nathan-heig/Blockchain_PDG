@@ -15,18 +15,21 @@ ApplicationWindow {
     title: qsTr("SkibidiCoin")
     color: Theme.backgroundColor
 
-    // Backend properties - facilement remplaçables par des propriétés C++
+
+    // Backend properties (a supprimer)
     property real availableBalance: 1335.42
     property string cryptoCurrency: "SKBC"
     property bool isMining: false
 
-    // Stats properties
+
+    // Stats properties (a supprimer)
     property int mineurs: 42
     property real hashrate: 12.34
     property int bloc: 123456
     property real tps: 3.20
 
-    // Transaction history model - sera remplacé par un model C++
+
+    // Transaction history model (a supprimer)
     ListModel {
         id: transactionModel
         ListElement {
@@ -75,7 +78,6 @@ ApplicationWindow {
                 }
 
                 StatsItem {
-                    iconSource: "qrc:/icons/miners.svg"
                     label: "Mineurs"
                     value: window.mineurs.toString()
                     Layout.fillWidth: true
