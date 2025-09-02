@@ -13,6 +13,7 @@
 #include "PeerInfo.hpp"
 #include "BinaryProtocol.hpp"
 #include "config.hpp"
+#include <atomic>
 
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>
@@ -30,9 +31,8 @@ public:
 
     /*Lance un thread qui gère le réseau*/
     void start() {
-        if (openPort()) {
-            accept();
-        }
+        (void)openPort();
+        accept();
         thread_ = std::thread([this]{ io_.run(); });
     }
     void stop() {
@@ -47,11 +47,14 @@ public:
             [this, conn, peer](auto ec){
                 if (!ec){
                     peers_[peer] = conn;
+                    peerCount_.fetch_add(1, std::memory_order_relaxed);
                     setupCallbacks(peer, conn);
                     sendVersion(peer);
                 }
             });
     }
+
+    int peerCount() const { return peerCount_.load(); }
 
     void buildFrameAndbroadcast(MsgType type, const std::vector<uint8_t>& payload);
 
@@ -73,7 +76,7 @@ private:
     std::unordered_map<PeerInfo, ConnPtr> incoming_; // connexions entrantes
     std::unordered_map<PeerInfo, uint32_t> peersSize_;
 
-
+    std::atomic<int> peerCount_{0};
 
     void accept(){
         auto conn = std::make_shared<TcpConnection>(io_);
@@ -81,6 +84,7 @@ private:
             if (!ec){
                 PeerInfo p(conn->socketRef().remote_endpoint().address().to_string(), conn->socketRef().remote_endpoint().port());
                 incoming_[p] = conn;
+                peerCount_.fetch_add(1, std::memory_order_relaxed);
                 setupCallbacks(p, conn);
                 std::cout << "New incoming connection from: " << p.getIp() << ":" << p.getPort() << std::endl;
             }
@@ -115,69 +119,51 @@ private:
     void requestBlock(const PeerInfo& peer, uint32_t blockIdx);
 
     bool openPort() {
-        bool success = true;
-
+        bool success = false;
         UPNPDev* devlist = nullptr;
-        std::string lanaddr(64, '\0');
-
         int error = 0;
         devlist = upnpDiscover(2000, nullptr, nullptr, 0, 0, 2, &error);
 
-        UPNPUrls urls;
-        IGDdatas data;
-        error = UPNP_GetValidIGD(devlist, &urls, &data, &lanaddr[0], lanaddr.size());
+        UPNPUrls urls{}; IGDdatas data{};
+        char lanaddr[64] = {0};
+
+        int igd = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
         freeUPNPDevlist(devlist);
 
-        if (error != 1) {
-            //std::cout << "Failed to get IGD" << std::endl;
-            success = false;
+        if (igd == 1) {
+            std::string port_str = std::to_string(listenPort_);
+            int rc = UPNP_AddPortMapping(urls.controlURL, data.first.servicetype,
+                                         port_str.c_str(), port_str.c_str(),
+                                         lanaddr, "Blockchain", "TCP", nullptr, "0");
+            success = (rc == UPNPCOMMAND_SUCCESS);
+            FreeUPNPUrls(&urls);
         }
-
-        std::string port_str = std::to_string(listenPort_);
-        error = UPNP_AddPortMapping(urls.controlURL, data.first.servicetype,
-                                    port_str.c_str(), port_str.c_str(), lanaddr.c_str(), "Blockchain", "TCP", nullptr, "0");
-
-        if (error != UPNPCOMMAND_SUCCESS) {
-            //std::cout << "Failed to add port mapping" << std::endl;
-            success = false;
-        }
-
-        FreeUPNPUrls(&urls);
-
-        if (success) {
-            std::cout << "Successfully opened port, listening on " << listenPort_ << std::endl;
-        } else {
-            std::cout << "Failed to open port" << std::endl;
-            listenPort_ = 0;
-        }
-
+        if (success)
+            std::cout << "UPnP mapping OK on " << listenPort_ << std::endl;
+        else
+            std::cout << "UPnP mapping not available; continuing local listen" << std::endl;
         return success;
     }
+
     void closePort() {
         UPNPDev* devlist = nullptr;
-        std::string lanaddr(64, '\0');
-
         int error = 0;
         devlist = upnpDiscover(2000, nullptr, nullptr, 0, 0, 2, &error);
 
-        UPNPUrls urls;
-        IGDdatas data;
-        error = UPNP_GetValidIGD(devlist, &urls, &data, &lanaddr[0], lanaddr.size());
+        UPNPUrls urls{}; IGDdatas data{};
+        char lanaddr[64] = {0};
+
+        int igd = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
         freeUPNPDevlist(devlist);
 
-        if (error != 1) {
-            std::cout << "Failed to get IGD" << std::endl;
+        if (igd == 1) {
+            std::string port_str = std::to_string(listenPort_);
+            UPNP_DeletePortMapping(urls.controlURL, data.first.servicetype,
+                                   port_str.c_str(), "TCP", nullptr);
+            FreeUPNPUrls(&urls);
         }
-
-        std::string port_str = std::to_string(listenPort_);
-        error = UPNP_DeletePortMapping(urls.controlURL, data.first.servicetype, port_str.c_str(), "TCP", nullptr);
-
-        if (error != UPNPCOMMAND_SUCCESS) {
-            std::cout << "Failed to delete port mapping" << std::endl;
-        }
-
-        FreeUPNPUrls(&urls);
     }
+
 };
 
 #endif // NODE_NETWORK_HPP

@@ -8,71 +8,36 @@ import "styles"
 ApplicationWindow {
     id: window
     visible: true
-    width: 1200
-    height: 700
-    minimumWidth: 800
-    minimumHeight: 600
+    width: 1200; height: 700
+    minimumWidth: 800; minimumHeight: 600
     title: qsTr("Skibidi Coin")
     color: Theme.backgroundColor
 
-    // Connexion au backend blockchain
-    property var backend: blockchain
+    // NOTE: backend est fourni par C++ via contextProperty("backend", &backend)
+    // => Pas de property var backend: ... ici
 
-    // Properties liées au backend
-    property real availableBalance: backend ? backend.balance : 0
-    property string cryptoCurrency: "SKBC"
-    property bool isMining: backend ? backend.isMining : false
+    // Petites aides UI
+    function showInfo(msg) { console.log(msg) } // remplace un vrai toast/dialog si besoin
 
-    // Stats properties
-    property int mineurs: backend ? backend.mineurs : 0
-    property real hashrate: backend ? backend.hashrate : 0
-    property int bloc: backend ? backend.blockCount : 0
-    property real tps: backend ? backend.tps : 0
-
-    // Transaction history model local (pourrait être amélioré avec un model C++)
-    ListModel {
-        id: transactionModel
-    }
-
-    // Connexions aux signaux du backend
     Connections {
         target: backend
 
         function onTransactionSent(success, message) {
             if (success) {
-                // Ajouter à l'historique
-                transactionModel.insert(0, {
-                    "txId": "0x" + Date.now().toString(16).slice(-8) + "...",
-                    "amount": parseFloat(message),
-                    "currency": "SKBC",
-                    "isReceive": false
-                })
-                console.log("Transaction sent successfully:", message, "SKBC")
+                showInfo("Transaction sent: " + message + " SKBC")
             } else {
-                console.error("Transaction failed:", message)
+                showInfo("Transaction failed: " + message)
             }
         }
 
         function onBlockMined(reward) {
-            // Ajouter la récompense de mining à l'historique
-            transactionModel.insert(0, {
-                "txId": "Mining reward",
-                "amount": reward,
-                "currency": "SKBC",
-                "isReceive": true
-            })
-            console.log("Block mined! Reward:", reward, "SKBC")
+            showInfo("Block mined! +" + reward + " SKBC")
         }
 
         function onAddressGenerated(address) {
-            console.log("Your receive address:", address)
-            // Pourrait afficher dans un dialog
+            showInfo("Receive address: " + address)
         }
-
-        function onBalanceChanged() {
-            // La balance se met à jour automatiquement via le binding
-            console.log("Balance updated:", backend.balance, "SKBC")
-        }
+        // function onBalanceChanged() { /* binding auto via Q_PROPERTY */ }
     }
 
     RowLayout {
@@ -80,7 +45,7 @@ ApplicationWindow {
         anchors.margins: 20
         spacing: 20
 
-        // Panel gauche - Stats
+        // --- Panel gauche (Stats) ---
         Rectangle {
             Layout.preferredWidth: 250
             Layout.fillHeight: true
@@ -94,8 +59,7 @@ ApplicationWindow {
 
                 Label {
                     text: "Stats"
-                    font.pixelSize: 18
-                    font.weight: Font.Medium
+                    font.pixelSize: 18; font.weight: Font.Medium
                     color: Theme.textColor
                     Layout.bottomMargin: 20
                 }
@@ -103,42 +67,45 @@ ApplicationWindow {
                 StatsItem {
                     iconSource: "qrc:/icons/miners.svg"
                     label: "Mineurs"
-                    value: window.mineurs.toString()
+                    value: String(backend.mineurs)
                     Layout.fillWidth: true
                 }
-
                 StatsItem {
                     iconSource: "qrc:/icons/hashrate.svg"
                     label: "Hashrate"
-                    value: window.hashrate.toFixed(2) + " MH/s"
+                    value: backend.hashrate.toFixed(2) + " MH/s"
                     Layout.fillWidth: true
                 }
-
                 StatsItem {
                     iconSource: "qrc:/icons/block.svg"
                     label: "Bloc"
-                    value: "#" + window.bloc.toString()
+                    value: "#" + String(backend.blockCount)
                     Layout.fillWidth: true
                 }
-
                 StatsItem {
                     iconSource: "qrc:/icons/tps.svg"
                     label: "TPS"
-                    value: window.tps.toFixed(2)
+                    value: backend.tps.toFixed(2)
                     Layout.fillWidth: true
                 }
 
                 Item { Layout.fillHeight: true }
+
+                // Indicateur mining (optionnel)
+                BusyIndicator {
+                    running: backend.isMining
+                    visible: running
+                    Layout.alignment: Qt.AlignHCenter
+                }
             }
         }
 
-        // Panel central - Balance et actions
+        // --- Panel central (Balance + actions) ---
         ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             spacing: 20
 
-            // Carte de balance
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -148,21 +115,17 @@ ApplicationWindow {
                 ColumnLayout {
                     anchors.centerIn: parent
                     spacing: 30
-                    width: Math.min(400, parent.width * 0.8)
+                    width: Math.min(420, parent.width * 0.8)
 
                     // Logo
                     Rectangle {
                         Layout.alignment: Qt.AlignHCenter
-                        width: 80
-                        height: 80
-                        radius: 40
+                        width: 80; height: 80; radius: 40
                         color: Theme.accentColor
-
                         Label {
                             anchors.centerIn: parent
                             text: "₿"
-                            font.pixelSize: 40
-                            font.weight: Font.Bold
+                            font.pixelSize: 40; font.weight: Font.Bold
                             color: Theme.backgroundColor
                         }
                     }
@@ -170,44 +133,34 @@ ApplicationWindow {
                     // Balance
                     ColumnLayout {
                         Layout.alignment: Qt.AlignHCenter
-                        spacing: 10
-
+                        spacing: 6
                         Label {
                             Layout.alignment: Qt.AlignHCenter
                             text: "Available Balance"
-                            font.pixelSize: 14
-                            color: Theme.secondaryTextColor
+                            font.pixelSize: 14; color: Theme.secondaryTextColor
                         }
-
                         Label {
                             Layout.alignment: Qt.AlignHCenter
-                            text: window.availableBalance.toLocaleString(Qt.locale(), 'f', 2)
-                            font.pixelSize: 48
-                            font.weight: Font.Bold
-                            color: Theme.textColor
+                            text: backend.balance.toLocaleString(Qt.locale(), 'f', 2)
+                            font.pixelSize: 48; font.weight: Font.Bold; color: Theme.textColor
                         }
-
                         Label {
                             Layout.alignment: Qt.AlignHCenter
-                            text: window.cryptoCurrency
-                            font.pixelSize: 16
-                            color: Theme.secondaryTextColor
+                            text: "SKBC"
+                            font.pixelSize: 16; color: Theme.secondaryTextColor
                         }
                     }
 
-                    // Bouton Mining
+                    // Mining
                     MiningButton {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 50
-                        isMining: window.isMining
-                        onClicked: {
-                            if (backend) {
-                                backend.isMining = !backend.isMining
-                            }
-                        }
+                        isMining: backend.isMining
+                        text: isMining ? "Arrêter le mining" : "Démarrer le mining"
+                        onClicked: backend.setIsMining(!backend.isMining)
                     }
 
-                    // Boutons Send/Receive
+                    // Send / Receive
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 20
@@ -215,18 +168,10 @@ ApplicationWindow {
                         ActionButton {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 50
-                            text: "Send"
+                            text: "Send 1.00 SKBC"
                             isPrimary: true
-                            onClicked: {
-                                // Pour la démo, envoyer 1 SKBC à une adresse générée
-                                // Dans une vraie app, il faudrait un dialog pour entrer l'adresse
-                                if (backend && window.availableBalance >= 1.01) { // 1 SKBC + 0.01 fees
-                                    backend.sendTransaction(1.0, "")
-                                    console.log("Sending 1 SKBC...")
-                                } else {
-                                    console.log("Insufficient balance. Need at least 1.01 SKBC")
-                                }
-                            }
+                            enabled: backend.balance >= 1.01
+                            onClicked: backend.sendTransaction(1.0, "")
                         }
 
                         ActionButton {
@@ -234,53 +179,50 @@ ApplicationWindow {
                             Layout.preferredHeight: 50
                             text: "Receive"
                             isPrimary: false
-                            onClicked: {
-                                if (backend) {
-                                    backend.receiveCoins()
-                                }
-                            }
+                            onClicked: backend.receiveCoins()
                         }
                     }
                 }
             }
         }
-    }
 
-    // Panel droit - Historique
-    Rectangle {
-        Layout.preferredWidth: 350
-        Layout.fillHeight: true
-        color: Theme.panelColor
-        radius: Theme.radius
+        // --- Panel droit (Historique) ---
+        Rectangle {
+            Layout.preferredWidth: 350
+            Layout.fillHeight: true
+            color: Theme.panelColor
+            radius: Theme.radius
 
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 20
-            spacing: 15
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 20
+                spacing: 15
 
-            Label {
-                text: "Transaction history"
-                font.pixelSize: 18
-                font.weight: Font.Medium
-                color: Theme.textColor
-            }
+                Label {
+                    text: "Transaction history"
+                    font.pixelSize: 18; font.weight: Font.Medium
+                    color: Theme.textColor
+                }
 
-            ScrollView {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
+                ScrollView {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
 
-                ListView {
-                    id: transactionList
-                    model: transactionModel
-                    spacing: 10
+                    // Si tu as un modèle C++: model: backend.txModel
+                    // En attendant, tu peux laisser ton ListModel QML ou passer plus tard
+                    ListView {
+                        id: transactionList
+                        model: backend.txModel   // <-- recommandé, côté C++
+                        spacing: 10
 
-                    delegate: TransactionItem {
-                        width: transactionList.width
-                        txId: model.txId
-                        amount: (model.isReceive ? "+" : "-") + model.amount.toFixed(2)
-                        currency: model.currency
-                        isReceive: model.isReceive
+                        delegate: TransactionItem {
+                            width: transactionList.width
+                            txId: model.txId
+                            amount: (model.isReceive ? "+" : "-") + Number(model.amount).toFixed(2)
+                            currency: model.currency
+                            isReceive: model.isReceive
+                        }
                     }
                 }
             }

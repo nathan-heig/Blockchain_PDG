@@ -118,7 +118,7 @@ namespace crypto {
             throw std::runtime_error("Failed to create BIO");
         }
 
-        if (PEM_write_bio_PUBKEY(bio, pkey) != 1) {
+         if (PEM_write_bio_PUBKEY(bio, pkey) != 1) {
             BIO_free(bio);
             throw std::runtime_error("Failed to write public key");
         }

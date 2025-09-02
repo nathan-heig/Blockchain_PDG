@@ -39,7 +39,15 @@ private:
     /*Vérifie que la transaction est solvable*/
     const bool verifySold(const Blockchain& blockchain) const {return getFee(blockchain) >= 0;}
     /*Vérifie la signature de la transaction*/
-    const bool verifySignature(const Blockchain& blockchain) const {return crypto::verifySignature(getStrToSign(), signature, inputs[0].getOutput(blockchain).getPubKey());}
+    const bool verifySignature(const Blockchain& blockchain) const {
+        if (inputs.empty()) return false; // rien à vérifier
+        try {
+            return crypto::verifySignature(getStrToSign(), signature,
+                                           inputs[0].getOutput(blockchain).getPubKey());
+        } catch (...) {
+            return false;
+        }
+    }
 
 public:
     //Constructors
@@ -54,6 +62,14 @@ public:
     }
     /*Créer une transaction signée*/
     static const Transaction create(EVP_PKEY* fromPrivKey, const PubKey& toPubKey, double amount, double fee, const Blockchain& blockchain);
+
+    // dans class Transaction (en plus de la version existante)
+    static const Transaction createWithFromPub(EVP_PKEY* fromPrivKey,
+                                               const PubKey& fromPubKey,
+                                               const PubKey& toPubKey,
+                                               double amount, double fee,
+                                               const Blockchain& blockchain);
+
 
     bool operator<(const Transaction& other) const {
         return std::tie(inputs, signature) < std::tie(other.inputs, other.signature);

@@ -78,6 +78,7 @@ target_include_directories(blockchain_core
     ${CMAKE_CURRENT_SOURCE_DIR}/src/transaction
     ${CMAKE_CURRENT_SOURCE_DIR}/src/network
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui
     ${Boost_INCLUDE_DIRS}
 )
 
@@ -116,7 +117,9 @@ message(STATUS "Building Qt app with resources: ${CMAKE_CURRENT_SOURCE_DIR}/src/
 # Créer l'exécutable avec les ressources compilées
 qt_add_executable(appBlockchain_desktop_PDG
     src/main.cpp
-    ${QRC_SOURCES}  # CRUCIAL: Les ressources DOIVENT être ici
+    ${QRC_SOURCES}
+    src/ui/WalletBackend.cpp
+    src/ui/TransactionListModel.hpp  # CRUCIAL: Les ressources DOIVENT être ici
 )
 
 # S'assurer que c'est une app Windows GUI

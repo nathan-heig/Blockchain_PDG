@@ -34,7 +34,7 @@ void NodeNetwork::handleMessage(const PeerInfo& peer, const std::string& raw){
             if (h.length == sizeof(uint16_t)) {
                 std::cout << "Received VERSION message" << std::endl;
                 uint16_t remoteListeningPort;
-                std::memcpy(&remoteListeningPort, payload + sizeof(uint32_t), sizeof(uint16_t));
+                std::memcpy(&remoteListeningPort, payload, sizeof(uint16_t));
 
 
                 if (h.localSize > blockchain_.size())
@@ -48,7 +48,7 @@ void NodeNetwork::handleMessage(const PeerInfo& peer, const std::string& raw){
             if (h.length == sizeof(uint16_t)) {
                 std::cout << "Received ACK message" << std::endl;
                 uint16_t remoteListeningPort;
-                std::memcpy(&remoteListeningPort, payload + sizeof(uint32_t), sizeof(uint16_t));
+                std::memcpy(&remoteListeningPort, payload, sizeof(uint16_t));
 
                 if (h.localSize > blockchain_.size())
                     requestBlock(peer, blockchain_.size());
@@ -108,8 +108,9 @@ void NodeNetwork::handleMessage(const PeerInfo& peer, const std::string& raw){
 }
 
 void NodeNetwork::handleDisconnect(const PeerInfo& peer){
-    peers_.erase(peer); // pour outgoing
-    incoming_.erase(peer); // pour incoming
+    size_t erased = peers_.erase(peer); // pour outgoing
+    if (!erased) erased = incoming_.erase(peer); // pour incoming
+    if (erased) peerCount_.fetch_sub(1, std::memory_order_relaxed);
 }
 
 void NodeNetwork::buildAndSendFrame(const PeerInfo& peer, MsgType type, const std::vector<uint8_t>& payload){

@@ -30,25 +30,35 @@ const std::string Transaction::getStrToSign() const {
 
 
 const bool Transaction::verifyInputs(const Blockchain& blockchain, const UTXOs& unspentOutputs) const {
-    if (inputs.size() >= MAX_INPUTS or inputs.empty()){
-        return false; // A transaction must have at least one input and no more than MAX_INPUTS
+    if (inputs.empty() || inputs.size() >= MAX_INPUTS) {
+        return false;
     }
 
-    const PubKey pubKey = this->inputs[0].getOutput(blockchain).getPubKey();
+    // PubKey de référence: propriétaire du premier input
+    const PubKey pubKey = inputs[0].getOutput(blockchain).getPubKey();
+
+    // Vérifie que la clé existe dans UTXOs
+    auto it = unspentOutputs.find(pubKey);
+    if (it == unspentOutputs.end()) {
+        return false;
+    }
+    const auto& ownedUtxos = it->second;
+
     for (const auto& input : inputs) {
         const Output& out = input.getOutput(blockchain);
         if (out.getValue() <= 0) {
-            return false; // Output value must be positive
+            return false;
         }
         if (out.getPubKey() != pubKey) {
-            return false; // All inputs must be from the same owner
+            return false; // tous les inputs doivent appartenir au même owner
         }
-        if (unspentOutputs.at(pubKey).find(input) == unspentOutputs.at(pubKey).end()) {
-            return false; // Input must be unspent
+        if (ownedUtxos.find(input) == ownedUtxos.end()) {
+            return false; // l’input doit être non dépensé
         }
     }
     return true;
 }
+
 
 const bool Transaction::verifyOutputs() const {
     if (outputs.size() >= MAX_OUTPUTS or outputs.empty()){
@@ -69,4 +79,45 @@ const bool Transaction::verify(const Blockchain& blockchain, const UTXOs& unspen
 
 const bool Transaction::verifyMiningReward(const Blockchain& blockchain, const Block& block) const {
     return outputs.size() == 1 and inputs.empty() and signature.empty() and outputs[0].getValue() == BlockTransactions::calculateMinerReward(blockchain, block);
+}
+
+const Transaction Transaction::createWithFromPub(EVP_PKEY* fromPrivKey,
+                                                 const PubKey& fromPubKey,
+                                                 const PubKey& toPubKey,
+                                                 double amount, double fee,
+                                                 const Blockchain& blockchain)
+{
+    if (blockchain.getWalletBalance(fromPubKey) < amount + fee) {
+        throw std::runtime_error("Insufficient balance");
+    }
+
+    Inputs inputs;
+    double totalBalance = 0.0;
+
+    const auto allUtxos = blockchain.getUTXOsSnapshot();
+    auto it = allUtxos.find(fromPubKey);
+    if (it == allUtxos.end() || it->second.empty()) {
+        throw std::runtime_error("No UTXOs available for sender");
+    }
+
+    for (const auto& outRef : it->second) {
+        inputs.push_back(outRef);
+        totalBalance += outRef.getOutput(blockchain).getValue();
+        if (totalBalance >= amount + fee) break;
+    }
+
+    if (totalBalance < amount + fee) {
+        throw std::runtime_error("Insufficient gathered UTXOs");
+    }
+
+    Outputs outputs;
+    outputs.push_back(Output(amount, toPubKey));
+    const double change = totalBalance - amount - fee;
+    if (change > 0) {
+        outputs.push_back(Output(change, fromPubKey));
+    }
+
+    Transaction tx(inputs, outputs);
+    tx.sign(fromPrivKey);
+    return tx;
 }

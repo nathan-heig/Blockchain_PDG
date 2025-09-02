@@ -2,11 +2,9 @@
 #include "Blockchain.hpp"
 
 
-
-
-
-const Transaction Transaction::create(EVP_PKEY* fromPrivKey, const PubKey& toPubKey, double amount, double fee, const Blockchain& blockchain){
-
+const Transaction Transaction::create(EVP_PKEY* fromPrivKey, const PubKey& toPubKey,
+                                      double amount, double fee, const Blockchain& blockchain)
+{
     const PubKey fromPubKey = crypto::getPubKey(fromPrivKey);
 
     if (blockchain.getWalletBalance(fromPubKey) < amount + fee) {
@@ -15,10 +13,22 @@ const Transaction Transaction::create(EVP_PKEY* fromPrivKey, const PubKey& toPub
 
     Inputs inputs;
     double totalBalance = 0.0;
-    for( OutputReference outRef : blockchain.getUTXOs().at(fromPubKey)) {
+
+    // Utiliser find() plutôt que at()
+    const auto allUtxos = blockchain.getUTXOsSnapshot();
+    auto it = allUtxos.find(fromPubKey);
+    if (it == allUtxos.end() || it->second.empty()) {
+        throw std::runtime_error("No UTXOs available for sender");
+    }
+
+    for (const auto& outRef : it->second) {
         inputs.push_back(outRef);
         totalBalance += outRef.getOutput(blockchain).getValue();
         if (totalBalance >= amount + fee) break;
+    }
+
+    if (totalBalance < amount + fee) {
+        throw std::runtime_error("Insufficient gathered UTXOs");
     }
 
     Outputs outputs;
@@ -28,20 +38,25 @@ const Transaction Transaction::create(EVP_PKEY* fromPrivKey, const PubKey& toPub
         outputs.push_back(Output(change, fromPubKey));
     }
 
-    auto tx = Transaction(inputs, outputs);
+    Transaction tx(inputs, outputs);
     tx.sign(fromPrivKey);
     return tx;
 }
 
 
+
 bool TransactionPool::addTransaction(const Transaction& tx){
-    if (!tx.verify(blockchain_, blockchain_.getUTXOs())) { // vérification basique
-        return false;
+    try {
+        auto utxoSnap = blockchain_.getUTXOsSnapshot();
+        if (!tx.verify(blockchain_, utxoSnap)) {
+            return false;
+        }
+    } catch (...) {
+        return false; // jamais de crash : on refuse simplement
     }
 
     std::lock_guard<std::mutex> lock(mutex_);
 
-    // Vérifie que les entrées ne sont pas déjà utilisées dans la pool
     for (const auto& input : tx.getInputs()) {
         if (spentOutputs_.count(input) > 0) {
             return false;

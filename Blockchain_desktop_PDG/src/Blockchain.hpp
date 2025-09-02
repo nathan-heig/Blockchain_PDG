@@ -6,8 +6,10 @@
 #include "config.hpp"
 #include "transaction/TransactionPool.hpp"
 
+#include <mutex>
 #include <thread>
-
+#include <atomic>
+#include <functional>
 
 class Blockchain {
 private:
@@ -17,8 +19,9 @@ private:
     TransactionPool transactionPool{*this};//pool de transactions en attente
     UTXOs utxos;//output de transactions non dépensées (unspent transaction outputs)
 
-
-    bool isMining{false};
+    mutable std::mutex mtx_; //protège blocks / utxos / transactionPool
+    std::atomic<bool> isMining{false};
+    std::atomic<double> lastHashrateMHs{0.0}; //pour les stats
 
     /*Ajoute une sortie non dépensée à la liste*/
     void addUnspentOutput(const PubKey& pubKey, const OutputReference& outputRef) {utxos[pubKey].insert(outputRef);}
@@ -27,10 +30,18 @@ private:
 
 public:
 
+    std::function<void(double)> onBlockMined; //reward en param
 
     // Constructor
     Blockchain(){}
 
+    /*Retourne le nombre de blocs dans la blockchain*/
+    uint32_t size() const { std::lock_guard<std::mutex> lk(mtx_); return (uint32_t)blocks.size(); }
+    double getWalletBalance(const PubKey& pubKey) const;
+    /*Retourne une référence constante sur le bloc à l'index donné*/
+    const Block& operator[](const size_t index) const { std::lock_guard<std::mutex> lk(mtx_); return blocks[index]; }
+    UTXOs getUTXOsSnapshot() const;
+    double getHashrate() const { return lastHashrateMHs.load(); }
 
     // Getters
     /*Retourne un object Transactions prêt a etre ajouté dans un bloc*/
@@ -39,10 +50,9 @@ public:
     static const double getMiningRewardAt(uint32_t index);
     /*Retourne la difficulté à un index donné en se basent sur le temps des blocks precedants l'index*/
     const Target getTargetAt(uint32_t index) const;
-    /*Retourne le nombre de blocs dans la blockchain*/
-    uint32_t size() const {return blocks.size();}
 
-    double getWalletBalance(const PubKey& pubKey) const;
+
+
 
     TransactionPool& getTransactionPool() { return transactionPool; }
     const TransactionPool& getTransactionPool() const { return transactionPool; }
@@ -52,10 +62,6 @@ public:
 
     const UTXOs& getUTXOs() const { return utxos; }
 
-
-    //Operators
-    /*Retourne une référence constante sur le bloc à l'index donné*/
-    const Block& operator[](const size_t index) const {return blocks[index];}
 
 
     //Setters

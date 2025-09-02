@@ -6,6 +6,7 @@ Button {
     id: root
 
     property bool isPrimary: true
+    hoverEnabled: true
 
     background: Rectangle {
         radius: Theme.radius
@@ -36,11 +37,5 @@ Button {
         font.weight: Font.Medium
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        cursorShape: Qt.PointingHandCursor
-        onPressed: mouse.accepted = false
     }
 }

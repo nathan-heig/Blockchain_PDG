@@ -99,6 +99,8 @@ public:
     /*Cette fonction vérifie la validité du bloc en s'assurant que le hash correspond à la difficulté et que les transactions sont valides.*/
     bool verify(const Blockchain& blockchain, const UTXOs& utxos) const;
 
+    const uint32_t getNonce() const { return nonce; }
+
     template<class Archive>
     void serialize(Archive& ar){
         ar(index, nonce, timestamp, target, transactions, previousHash, hash);

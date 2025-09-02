@@ -6,10 +6,8 @@
 #include <QDebug>
 
 // Inclure ici les classes backend
-// #include "WalletBackend.h"
-// #include "TransactionModel.h"
-// #include "MiningController.h"
-#include <Blockchain.hpp>
+#include "ui/WalletBackend.hpp"
+#include "ui/TransactionListModel.hpp"
 
 
 int main(int argc, char *argv[])
@@ -22,6 +20,16 @@ int main(int argc, char *argv[])
     app.setApplicationName("SkibidiCoin");
 
     QQmlApplicationEngine engine;
+
+    // Enregistrement du singleton Theme
+    qmlRegisterSingletonType(QUrl("qrc:/styles/Theme.qml"), "Styles", 1, 0, "Theme");
+
+    // Modèle transaction utilisable côté QML si besoin d’instanciation
+    qmlRegisterType<TransactionListModel>("Backend", 1, 0, "TransactionListModel");
+
+    // Backend exposé au contexte QML sous le nom "backend"
+    WalletBackend backend;
+    engine.rootContext()->setContextProperty("backend", &backend);
 
     // Enregistrement des types C++ pour QML
     // qmlRegisterType<WalletBackend>("Backend", 1, 0, "WalletBackend");
@@ -37,16 +45,6 @@ int main(int argc, char *argv[])
     // engine.rootContext()->setContextProperty("walletBackend", &walletBackend);
     // engine.rootContext()->setContextProperty("transactionModel", &transactionModel);
     // engine.rootContext()->setContextProperty("miningController", &miningController);
-
-    // Enregistrement du singleton Theme
-    qmlRegisterSingletonType(QUrl("qrc:/styles/Theme.qml"), "Styles", 1, 0, "Theme");
-
-    // Debug: Vérifier les ressources disponibles
-    QDirIterator it(":", QDirIterator::Subdirectories);
-    qDebug() << "Resources disponibles:";
-    while (it.hasNext()) {
-        qDebug() << it.next();
-    }
 
     const QUrl url(u"qrc:/main.qml"_qs);
     qDebug() << "Tentative de chargement:" << url;

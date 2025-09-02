@@ -7,6 +7,7 @@ Button {
 
     property bool isMining: false
     text: isMining ? "Mining en cours..." : "Mining en cours..." //a modifier
+    hoverEnabled: true
 
     background: Rectangle {
         radius: Theme.radius
@@ -39,11 +40,5 @@ Button {
         font.weight: Font.Medium
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        cursorShape: Qt.PointingHandCursor
-        //onPressed: mouse.accepted = false
     }
 }

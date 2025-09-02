@@ -17,6 +17,10 @@ private:
     uint16_t outputIndex;
 
 public:
+    uint32_t getBlockIndex() const { return blockIndex; }
+    uint16_t getTxIndex() const { return txIndex; }
+    uint16_t getOutputIndex() const { return outputIndex; }
+
     //Constructor
     OutputReference() : blockIndex(0), txIndex(0), outputIndex(0) {} // pour désérialisation
     OutputReference(uint32_t blockIdx, uint16_t txIdx, uint16_t outIdx)
