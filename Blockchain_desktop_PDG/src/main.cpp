@@ -9,6 +9,8 @@
 // #include "WalletBackend.h"
 // #include "TransactionModel.h"
 // #include "MiningController.h"
+#include <Blockchain.hpp>
+
 
 int main(int argc, char *argv[])
 {

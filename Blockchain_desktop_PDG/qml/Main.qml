@@ -12,43 +12,66 @@ ApplicationWindow {
     height: 700
     minimumWidth: 800
     minimumHeight: 600
-    title: qsTr("SkibidiCoin")
+    title: qsTr("Skibidi Coin")
     color: Theme.backgroundColor
 
+    // Connexion au backend blockchain
+    property var backend: blockchain
 
-    // Backend properties (a supprimer)
-    property real availableBalance: 1335.42
+    // Properties liées au backend
+    property real availableBalance: backend ? backend.balance : 0
     property string cryptoCurrency: "SKBC"
-    property bool isMining: false
+    property bool isMining: backend ? backend.isMining : false
 
+    // Stats properties
+    property int mineurs: backend ? backend.mineurs : 0
+    property real hashrate: backend ? backend.hashrate : 0
+    property int bloc: backend ? backend.blockCount : 0
+    property real tps: backend ? backend.tps : 0
 
-    // Stats properties (a supprimer)
-    property int mineurs: 42
-    property real hashrate: 12.34
-    property int bloc: 123456
-    property real tps: 3.20
-
-
-    // Transaction history model (a supprimer)
+    // Transaction history model local (pourrait être amélioré avec un model C++)
     ListModel {
         id: transactionModel
-        ListElement {
-            txId: "0x12ab...89"
-            amount: "+12.50"
-            currency: "SKBC"
-            type: "receive"
+    }
+
+    // Connexions aux signaux du backend
+    Connections {
+        target: backend
+
+        function onTransactionSent(success, message) {
+            if (success) {
+                // Ajouter à l'historique
+                transactionModel.insert(0, {
+                    "txId": "0x" + Date.now().toString(16).slice(-8) + "...",
+                    "amount": parseFloat(message),
+                    "currency": "SKBC",
+                    "isReceive": false
+                })
+                console.log("Transaction sent successfully:", message, "SKBC")
+            } else {
+                console.error("Transaction failed:", message)
+            }
         }
-        ListElement {
-            txId: "0x98ff...aa"
-            amount: "-2.00"
-            currency: "SKBC"
-            type: "send"
+
+        function onBlockMined(reward) {
+            // Ajouter la récompense de mining à l'historique
+            transactionModel.insert(0, {
+                "txId": "Mining reward",
+                "amount": reward,
+                "currency": "SKBC",
+                "isReceive": true
+            })
+            console.log("Block mined! Reward:", reward, "SKBC")
         }
-        ListElement {
-            txId: "0x77cd...4e"
-            amount: "+0.80"
-            currency: "SKBC"
-            type: "receive"
+
+        function onAddressGenerated(address) {
+            console.log("Your receive address:", address)
+            // Pourrait afficher dans un dialog
+        }
+
+        function onBalanceChanged() {
+            // La balance se met à jour automatiquement via le binding
+            console.log("Balance updated:", backend.balance, "SKBC")
         }
     }
 
@@ -78,6 +101,7 @@ ApplicationWindow {
                 }
 
                 StatsItem {
+                    iconSource: "qrc:/icons/miners.svg"
                     label: "Mineurs"
                     value: window.mineurs.toString()
                     Layout.fillWidth: true
@@ -177,8 +201,9 @@ ApplicationWindow {
                         Layout.preferredHeight: 50
                         isMining: window.isMining
                         onClicked: {
-                            window.isMining = !window.isMining
-                            // Backend call here
+                            if (backend) {
+                                backend.isMining = !backend.isMining
+                            }
                         }
                     }
 
@@ -193,8 +218,14 @@ ApplicationWindow {
                             text: "Send"
                             isPrimary: true
                             onClicked: {
-                                // Backend call here
-                                console.log("Send clicked")
+                                // Pour la démo, envoyer 1 SKBC à une adresse générée
+                                // Dans une vraie app, il faudrait un dialog pour entrer l'adresse
+                                if (backend && window.availableBalance >= 1.01) { // 1 SKBC + 0.01 fees
+                                    backend.sendTransaction(1.0, "")
+                                    console.log("Sending 1 SKBC...")
+                                } else {
+                                    console.log("Insufficient balance. Need at least 1.01 SKBC")
+                                }
                             }
                         }
 
@@ -204,51 +235,52 @@ ApplicationWindow {
                             text: "Receive"
                             isPrimary: false
                             onClicked: {
-                                // Backend call here
-                                console.log("Receive clicked")
+                                if (backend) {
+                                    backend.receiveCoins()
+                                }
                             }
                         }
                     }
                 }
             }
         }
+    }
 
-        // Panel droit - Historique
-        Rectangle {
-            Layout.preferredWidth: 350
-            Layout.fillHeight: true
-            color: Theme.panelColor
-            radius: Theme.radius
+    // Panel droit - Historique
+    Rectangle {
+        Layout.preferredWidth: 350
+        Layout.fillHeight: true
+        color: Theme.panelColor
+        radius: Theme.radius
 
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 20
-                spacing: 15
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 20
+            spacing: 15
 
-                Label {
-                    text: "Transaction history"
-                    font.pixelSize: 18
-                    font.weight: Font.Medium
-                    color: Theme.textColor
-                }
+            Label {
+                text: "Transaction history"
+                font.pixelSize: 18
+                font.weight: Font.Medium
+                color: Theme.textColor
+            }
 
-                ScrollView {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    clip: true
+            ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
 
-                    ListView {
-                        id: transactionList
-                        model: transactionModel
-                        spacing: 10
+                ListView {
+                    id: transactionList
+                    model: transactionModel
+                    spacing: 10
 
-                        delegate: TransactionItem {
-                            width: transactionList.width
-                            txId: model.txId
-                            amount: model.amount
-                            currency: model.currency
-                            isReceive: model.type === "receive"
-                        }
+                    delegate: TransactionItem {
+                        width: transactionList.width
+                        txId: model.txId
+                        amount: (model.isReceive ? "+" : "-") + model.amount.toFixed(2)
+                        currency: model.currency
+                        isReceive: model.isReceive
                     }
                 }
             }

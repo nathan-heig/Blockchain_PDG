@@ -1,0 +1,273 @@
+.
+├── CMakeLists.txt
+├── qml
+│   ├── components
+│   │   ├── ActionButton.qml
+│   │   ├── MiningButton.qml
+│   │   ├── StatsItem.qml
+│   │   └── TransactionItem.qml
+│   ├── Main.qml
+│   └── styles
+│       ├── qmldir
+│       └── Theme.qml
+├── src
+│   ├── Blockchain.cpp
+│   ├── Blockchain.hpp
+│   ├── Block.cpp
+│   ├── Block.hpp
+│   ├── config.hpp
+│   ├── main.cpp
+│   ├── network
+│   │   ├── BinaryProtocol.hpp
+│   │   ├── NodeNetwork.cpp
+│   │   ├── NodeNetwork.hpp
+│   │   ├── PeerInfo.hpp
+│   │   └── TcpConnection.hpp
+│   ├── resources.qrc
+│   ├── test
+│   │   ├── crypto.cpp
+│   │   └── crypto.hpp
+│   └── transaction
+│       ├── BlockTransactions.cpp
+│       ├── BlockTransactions.hpp
+│       ├── cereal
+│       │   ├── access.hpp
+│       │   ├── archives
+│       │   │   ├── adapters.hpp
+│       │   │   ├── binary.hpp
+│       │   │   ├── json.hpp
+│       │   │   ├── portable_binary.hpp
+│       │   │   └── xml.hpp
+│       │   ├── cereal.hpp
+│       │   ├── details
+│       │   │   ├── helpers.hpp
+│       │   │   ├── polymorphic_impl_fwd.hpp
+│       │   │   ├── polymorphic_impl.hpp
+│       │   │   ├── static_object.hpp
+│       │   │   ├── traits.hpp
+│       │   │   └── util.hpp
+│       │   ├── external
+│       │   │   ├── base64.hpp
+│       │   │   ├── LICENSE
+│       │   │   ├── rapidjson
+│       │   │   │   ├── allocators.h
+│       │   │   │   ├── cursorstreamwrapper.h
+│       │   │   │   ├── document.h
+│       │   │   │   ├── encodedstream.h
+│       │   │   │   ├── encodings.h
+│       │   │   │   ├── error
+│       │   │   │   │   ├── en.h
+│       │   │   │   │   └── error.h
+│       │   │   │   ├── filereadstream.h
+│       │   │   │   ├── filewritestream.h
+│       │   │   │   ├── fwd.h
+│       │   │   │   ├── internal
+│       │   │   │   │   ├── biginteger.h
+│       │   │   │   │   ├── diyfp.h
+│       │   │   │   │   ├── dtoa.h
+│       │   │   │   │   ├── ieee754.h
+│       │   │   │   │   ├── itoa.h
+│       │   │   │   │   ├── meta.h
+│       │   │   │   │   ├── pow10.h
+│       │   │   │   │   ├── regex.h
+│       │   │   │   │   ├── stack.h
+│       │   │   │   │   ├── strfunc.h
+│       │   │   │   │   ├── strtod.h
+│       │   │   │   │   └── swap.h
+│       │   │   │   ├── istreamwrapper.h
+│       │   │   │   ├── LICENSE
+│       │   │   │   ├── memorybuffer.h
+│       │   │   │   ├── memorystream.h
+│       │   │   │   ├── msinttypes
+│       │   │   │   │   ├── inttypes.h
+│       │   │   │   │   ├── LICENSE
+│       │   │   │   │   └── stdint.h
+│       │   │   │   ├── ostreamwrapper.h
+│       │   │   │   ├── pointer.h
+│       │   │   │   ├── prettywriter.h
+│       │   │   │   ├── rapidjson.h
+│       │   │   │   ├── reader.h
+│       │   │   │   ├── schema.h
+│       │   │   │   ├── stream.h
+│       │   │   │   ├── stringbuffer.h
+│       │   │   │   └── writer.h
+│       │   │   └── rapidxml
+│       │   │       ├── license.txt
+│       │   │       ├── manual.html
+│       │   │       ├── rapidxml.hpp
+│       │   │       ├── rapidxml_iterators.hpp
+│       │   │       ├── rapidxml_print.hpp
+│       │   │       └── rapidxml_utils.hpp
+│       │   ├── macros.hpp
+│       │   ├── specialize.hpp
+│       │   ├── types
+│       │   │   ├── array.hpp
+│       │   │   ├── atomic.hpp
+│       │   │   ├── base_class.hpp
+│       │   │   ├── bitset.hpp
+│       │   │   ├── boost_variant.hpp
+│       │   │   ├── chrono.hpp
+│       │   │   ├── common.hpp
+│       │   │   ├── complex.hpp
+│       │   │   ├── concepts
+│       │   │   │   └── pair_associative_container.hpp
+│       │   │   ├── deque.hpp
+│       │   │   ├── forward_list.hpp
+│       │   │   ├── functional.hpp
+│       │   │   ├── list.hpp
+│       │   │   ├── map.hpp
+│       │   │   ├── memory.hpp
+│       │   │   ├── optional.hpp
+│       │   │   ├── polymorphic.hpp
+│       │   │   ├── queue.hpp
+│       │   │   ├── set.hpp
+│       │   │   ├── stack.hpp
+│       │   │   ├── string.hpp
+│       │   │   ├── tuple.hpp
+│       │   │   ├── unordered_map.hpp
+│       │   │   ├── unordered_set.hpp
+│       │   │   ├── utility.hpp
+│       │   │   ├── valarray.hpp
+│       │   │   ├── variant.hpp
+│       │   │   └── vector.hpp
+│       │   └── version.hpp
+│       ├── cereal-1.3.2
+│       │   ├── appveyor.yml
+│       │   ├── CMakeLists.txt
+│       │   ├── Config.cmake.in
+│       │   ├── doc
+│       │   │   ├── CMakeLists.txt
+│       │   │   ├── doxygen.in
+│       │   │   ├── DoxygenLayout.xml
+│       │   │   ├── footer.html
+│       │   │   └── mainpage.dox
+│       │   ├── .github
+│       │   │   └── workflows
+│       │   │       ├── ci-macos.yml
+│       │   │       └── ci.yml
+│       │   ├── include
+│       │   ├── LICENSE
+│       │   ├── README.md
+│       │   ├── sandbox
+│       │   │   ├── CMakeLists.txt
+│       │   │   ├── performance.cpp
+│       │   │   ├── sandbox.cpp
+│       │   │   ├── sandbox_json.cpp
+│       │   │   ├── sandbox_rtti.cpp
+│       │   │   ├── sandbox_shared_lib
+│       │   │   │   ├── base.cpp
+│       │   │   │   ├── base.hpp
+│       │   │   │   ├── CMakeLists.txt
+│       │   │   │   ├── derived.cpp
+│       │   │   │   └── derived.hpp
+│       │   │   └── sandbox_vs.cpp
+│       │   ├── scripts
+│       │   │   ├── add_rapidjson_prefix.sh
+│       │   │   ├── appveyor.bat
+│       │   │   ├── renameincludes.sh
+│       │   │   ├── updatecoverage.sh
+│       │   │   └── updatedoc.in
+│       │   ├── .travis.yml
+│       │   └── unittests
+│       │       ├── array.cpp
+│       │       ├── array.hpp
+│       │       ├── atomic.cpp
+│       │       ├── atomic.hpp
+│       │       ├── basic_string.cpp
+│       │       ├── basic_string.hpp
+│       │       ├── bitset.cpp
+│       │       ├── bitset.hpp
+│       │       ├── boost
+│       │       │   ├── boost_variant.cpp
+│       │       │   ├── boost_variant.hpp
+│       │       │   └── CMakeLists.txt
+│       │       ├── chrono.cpp
+│       │       ├── chrono.hpp
+│       │       ├── cmake-config-module.cmake
+│       │       ├── CMakeLists.txt
+│       │       ├── common.hpp
+│       │       ├── complex.cpp
+│       │       ├── complex.hpp
+│       │       ├── cpp17
+│       │       │   ├── CMakeLists.txt
+│       │       │   ├── optional.cpp
+│       │       │   ├── optional.hpp
+│       │       │   ├── variant.cpp
+│       │       │   └── variant.hpp
+│       │       ├── defer.cpp
+│       │       ├── defer.hpp
+│       │       ├── deque.cpp
+│       │       ├── deque.hpp
+│       │       ├── doctest.h
+│       │       ├── forward_list.cpp
+│       │       ├── forward_list.hpp
+│       │       ├── list.cpp
+│       │       ├── list.hpp
+│       │       ├── load_construct.cpp
+│       │       ├── load_construct.hpp
+│       │       ├── map.cpp
+│       │       ├── map.hpp
+│       │       ├── memory.cpp
+│       │       ├── memory_cycles.cpp
+│       │       ├── memory_cycles.hpp
+│       │       ├── memory.hpp
+│       │       ├── multimap.cpp
+│       │       ├── multimap.hpp
+│       │       ├── multiset.cpp
+│       │       ├── multiset.hpp
+│       │       ├── pair.cpp
+│       │       ├── pair.hpp
+│       │       ├── pod.cpp
+│       │       ├── pod.hpp
+│       │       ├── polymorphic.cpp
+│       │       ├── polymorphic.hpp
+│       │       ├── portability_test.cpp
+│       │       ├── portable_binary_archive.cpp
+│       │       ├── portable_binary_archive.hpp
+│       │       ├── priority_queue.cpp
+│       │       ├── priority_queue.hpp
+│       │       ├── queue.cpp
+│       │       ├── queue.hpp
+│       │       ├── run_portability_test.cmake
+│       │       ├── run_valgrind.sh
+│       │       ├── set.cpp
+│       │       ├── set.hpp
+│       │       ├── stack.cpp
+│       │       ├── stack.hpp
+│       │       ├── structs.cpp
+│       │       ├── structs.hpp
+│       │       ├── structs_minimal.cpp
+│       │       ├── structs_minimal.hpp
+│       │       ├── structs_specialized.cpp
+│       │       ├── structs_specialized.hpp
+│       │       ├── tuple.cpp
+│       │       ├── tuple.hpp
+│       │       ├── unordered_loads.cpp
+│       │       ├── unordered_loads.hpp
+│       │       ├── unordered_map.cpp
+│       │       ├── unordered_map.hpp
+│       │       ├── unordered_multimap.cpp
+│       │       ├── unordered_multimap.hpp
+│       │       ├── unordered_multiset.cpp
+│       │       ├── unordered_multiset.hpp
+│       │       ├── unordered_set.cpp
+│       │       ├── unordered_set.hpp
+│       │       ├── user_data_adapters.cpp
+│       │       ├── user_data_adapters.hpp
+│       │       ├── valarray.cpp
+│       │       ├── valarray.hpp
+│       │       ├── vector.cpp
+│       │       ├── vector.hpp
+│       │       ├── versioning.cpp
+│       │       └── versioning.hpp
+│       ├── Output.cpp
+│       ├── Output.hpp
+│       ├── OutputReference.cpp
+│       ├── OutputReference.hpp
+│       ├── Transaction.cpp
+│       ├── Transaction.hpp
+│       ├── TransactionPool.cpp
+│       ├── TransactionPool.hpp
+│       └── UTXOs.hpp
+└── tests
+    └── test_basic.cpp
