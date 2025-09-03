@@ -128,60 +128,6 @@ jobs:
             "$V/vcpkg" install boost-system openssl miniupnpc --triplet "$VCPKG_DEFAULT_TRIPLET"
           fi
 
-      # ===== Debug Qt (facultatif) =====
-      - name: Debug Qt Installation (Unix)
-        if: runner.os != 'Windows'
-        run: |
-          echo "QTDIR=$QTDIR"
-          echo "Qt6_DIR=$Qt6_DIR"
-          which qmake || true
-          qmake -v || true
-          echo "--- Checking for Core5Compat ---"
-          if [ -d "$Qt6_DIR/../Qt6Core5Compat" ]; then
-            echo "Qt6Core5Compat directory found"
-            ls -la "$Qt6_DIR/../Qt6Core5Compat" || true
-          else
-            echo "Qt6Core5Compat directory NOT found"
-            echo "Listing Qt6 cmake directories:"
-            ls -la "$Qt6_DIR/.." | grep Qt6 || true
-          fi
-        shell: bash
-
-      - name: Debug Qt Installation (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          echo "QTDIR=$env:QTDIR"
-          echo "Qt6_DIR=$env:Qt6_DIR"
-          where.exe qmake 2>$null || echo "qmake not in PATH"
-          qmake -v
-          echo "--- Checking for Core5Compat ---"
-          if ($env:Qt6_DIR) {
-            $qtCmakeDir = Split-Path $env:Qt6_DIR
-          } elseif ($env:QTDIR) {
-            $qtCmakeDir = Join-Path $env:QTDIR "lib\cmake"
-          } else {
-            $qmakePath = (where.exe qmake 2>$null | Select-Object -First 1)
-            if ($qmakePath) {
-              $qtBinDir = Split-Path $qmakePath
-              $qtRootDir = Split-Path $qtBinDir
-              $qtCmakeDir = Join-Path $qtRootDir "lib\cmake"
-            } else {
-              $qtCmakeDir = "$env:QTDIR\lib\cmake"
-            }
-          }
-          echo "Qt CMake directory: $qtCmakeDir"
-          $qt6Core5CompatPath = Join-Path $qtCmakeDir "Qt6Core5Compat"
-          if (Test-Path $qt6Core5CompatPath) {
-            echo "Qt6Core5Compat directory found at $qt6Core5CompatPath"
-            Get-ChildItem $qt6Core5CompatPath
-          } else {
-            echo "Qt6Core5Compat directory NOT found"
-            if (Test-Path $qtCmakeDir) {
-              Get-ChildItem $qtCmakeDir -Filter "Qt6*" | Select-Object Name
-            }
-          }
-        shell: pwsh
-
       # ===== Configure / Build / Test =====
       - name: Configure (CMake + Ninja)
         run: |
@@ -197,7 +143,7 @@ jobs:
       - name: CTest
         run: ctest --test-dir ${{ env.BUILD_DIR }} --output-on-failure
 
-      # ===== Deploy (inchangé) =====
+      # ===== Deploy Qt Dependencies (Windows) =====
       - name: Deploy Qt Dependencies (Windows)
         if: runner.os == 'Windows'
         run: |
@@ -216,38 +162,47 @@ jobs:
 
           Copy-Item "${{ env.BUILD_DIR }}\appBlockchain_desktop_PDG.exe" -Destination $deployDir
 
-          echo "Listing deployment targets..."
-          & $windeployqt --list target "$deployDir\appBlockchain_desktop_PDG.exe" 2>&1 | Out-String
+          & $windeployqt --release --qmldir "Blockchain_desktop_PDG" --no-translations --no-system-d3d-compiler --no-opengl-sw "$deployDir\appBlockchain_desktop_PDG.exe"
 
-          echo "Starting deployment..."
-          $windeployResult = & $windeployqt `
-            --release `
-            --qmldir "Blockchain_desktop_PDG" `
-            --no-translations `
-            --no-system-d3d-compiler `
-            --no-opengl-sw `
-            "$deployDir\appBlockchain_desktop_PDG.exe" 2>&1
-          echo "WinDeployQt output:"; $windeployResult | Out-String
-
-          # Copier runtimes VC++ (best-effort)
-          $vcRuntimeDlls = @("msvcp140.dll","vcruntime140.dll","vcruntime140_1.dll")
-          foreach ($vcDll in $vcRuntimeDlls) {
-            $p = "C:\Windows\System32\$vcDll"
-            if (Test-Path $p) { Copy-Item $p -Destination $deployDir -ErrorAction SilentlyContinue }
-          }
-
-          echo "`nDeployment completed. Contents of deploy directory:"
-          Get-ChildItem $deployDir -Recurse | Select-Object FullName | Out-String
         shell: pwsh
 
       - name: Deploy Qt Dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
           macdeployqt=$(which macdeployqt || echo "$QTDIR/bin/macdeployqt")
-          echo "Using macdeployqt: $macdeployqt"
           "$macdeployqt" "${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG.app" -qmldir=Blockchain_desktop_PDG -always-overwrite
         shell: bash
 
+      # ===== Package AppImage (Linux) =====
+      - name: Package AppImage (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          APPDIR=AppDir
+          mkdir -p $APPDIR/usr/bin
+          mkdir -p $APPDIR/usr/share/applications
+          mkdir -p $APPDIR/usr/share/icons/hicolor/256x256/apps
+
+          cp ${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG $APPDIR/usr/bin/
+
+          cat > $APPDIR/usr/share/applications/appBlockchain_desktop_PDG.desktop <<EOF
+          [Desktop Entry]
+          Type=Application
+          Name=Blockchain Desktop PDG
+          Exec=appBlockchain_desktop_PDG
+          Icon=appBlockchain_desktop_PDG
+          Categories=Utility;
+          EOF
+
+          # si tu as une icône -> active la ligne ci-dessous
+          # cp Blockchain_desktop_PDG/resources/icon.png $APPDIR/usr/share/icons/hicolor/256x256/apps/appBlockchain_desktop_PDG.png || true
+
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy-*.AppImage
+
+          ./linuxdeploy-x86_64.AppImage --appdir $APPDIR -e $APPDIR/usr/bin/appBlockchain_desktop_PDG -d $APPDIR/usr/share/applications/appBlockchain_desktop_PDG.desktop -i $APPDIR/usr/share/icons/hicolor/256x256/apps/appBlockchain_desktop_PDG.png --plugin qt --output appimage
+
+      # ===== Upload artifacts =====
       - name: Upload artifact (Windows)
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
@@ -256,12 +211,18 @@ jobs:
           path: ${{ env.BUILD_DIR }}/deploy/
           if-no-files-found: error
 
-      - name: Upload artifact (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Upload artifact (macOS)
+        if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
           name: app-${{ runner.os }}
-          path: |
-            ${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG
-            ${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG.app
+          path: ${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG.app
           if-no-files-found: ignore
+
+      - name: Upload artifact (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: appimage-linux
+          path: ./*.AppImage
+          if-no-files-found: error

@@ -66,15 +66,11 @@ public:
         return QString::fromStdString(minerPubKey);
     }
 
-    
 
 
     bool isMining() const { return m_chain.isMining(); }
     uint32_t blockCount() const { return m_chain.size(); }
-
-    int getTransactionCount() const {
-        return walletTransactions.size();
-    }
+    int getTransactionCount() const { return walletTransactions.size(); }
 
 signals:
     void blockCountChanged();
