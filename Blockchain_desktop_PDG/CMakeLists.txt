@@ -23,100 +23,117 @@ endif()
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Quick QuickControls2 Qml Core5Compat Test)
 qt_standard_project_setup(REQUIRES 6.5)
 
-
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
+
+# Boost detection
 find_package(Boost CONFIG QUIET COMPONENTS system)
 if(NOT Boost_FOUND)
   find_package(Boost REQUIRED COMPONENTS system)
 endif()
 
-set(BOOST_SYSTEM_TARGET "") # Vérifier les anciens package
-if(TARGET Boost::system)
-  set(BOOST_SYSTEM_TARGET Boost::system)
-elseif(DEFINED Boost_SYSTEM_LIBRARY)
-  set(BOOST_SYSTEM_TGT ${Boost_SYSTEM_LIBRARY})
-else()
-  message(FATAL_ERROR "Boost.System not found")
-endif()
-
-set(BOOST_HEADERS_TGT "")
-if(TARGET Boost::headers)
-  set(BOOST_HEADERS_TGT Boost::headers)
-endif()
-
 # -------- miniupnpc detection --------
-set(MINIUPNPC_LIB "")
+find_package(miniupnpc CONFIG QUIET)
+
+set(MINIUPNPC_TARGET "")
 set(MINIUPNPC_INC "")
 
-if(USE_SYSTEM_MINIUPNPC)
-  find_package(PkgConfig QUIET)
-  if(PkgConfig_FOUND)
-    pkg_check_modules(MINIUPNPC QUIET miniupnpc)
-    if(MINIUPNPC_FOUND)
-      set(MINIUPNPC_LIB ${MINIUPNPC_LINK_LIBRARIES})
-      set(MINIUPNPC_INC ${MINIUPNPC_INCLUDE_DIRS})
+# Si on a une config CMake (vcpkg) : utiliser la cible importée
+if(miniupnpc_FOUND)
+  set(MINIUPNPC_TARGET miniupnpc::miniupnpc)
+  message(STATUS "Found miniupnpc via CONFIG")
+else()
+  # Sinon, si on souhaite privilégier le système
+  if(USE_SYSTEM_MINIUPNPC)
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+      pkg_check_modules(MINIUPNPC QUIET miniupnpc)
+      if(MINIUPNPC_FOUND)
+        set(MINIUPNPC_TARGET ${MINIUPNPC_LINK_LIBRARIES})
+        set(MINIUPNPC_INC ${MINIUPNPC_INCLUDE_DIRS})
+      endif()
+    endif()
+
+    if(NOT MINIUPNPC_FOUND)
+      find_library(MINIUPNPC_LIB_PATH NAMES miniupnpc upnpc
+              PATHS
+              /usr/lib /usr/local/lib /opt/local/lib
+              /opt/homebrew/lib /usr/local/opt/miniupnpc/lib
+              $ENV{VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib
+      )
+      find_path(MINIUPNPC_INC miniupnpc/miniwget.h
+              PATHS
+              /usr/include /usr/local/include /opt/local/include
+              /opt/homebrew/include /usr/local/opt/miniupnpc/include
+              $ENV{VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/include
+      )
+      if(MINIUPNPC_LIB_PATH)
+        set(MINIUPNPC_TARGET ${MINIUPNPC_LIB_PATH})
+      endif()
     endif()
   endif()
+endif()
 
-  if(NOT MINIUPNPC_FOUND)
-    find_library(MINIUPNPC_LIB NAMES miniupnpc upnpc
-      PATHS
-        /usr/lib /usr/local/lib /opt/local/lib
-        /opt/homebrew/lib /usr/local/opt/miniupnpc/lib
-        $ENV{VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib
-    )
-    find_path(MINIUPNPC_INC miniupnpc/miniwget.h
-      PATHS
-        /usr/include /usr/local/include /opt/local/include
-        /opt/homebrew/include /usr/local/opt/miniupnpc/include
-        $ENV{VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/include
-    )
-  endif()
+# Si rien n'a été trouvé, fallback
+if(NOT MINIUPNPC_TARGET)
+  set(MINIUPNPC_TARGET miniupnpc)
+  message(WARNING "miniupnpc not found via vcpkg or system, will try -lminiupnpc")
 endif()
 
 # ================== LIB: blockchain_core ==================
 add_library(blockchain_core
-    src/Block.cpp
-    src/Blockchain.cpp
-    src/transaction/BlockTransactions.cpp
-    src/transaction/Output.cpp
-    src/transaction/OutputReference.cpp
-    src/transaction/Transaction.cpp
-    src/transaction/TransactionPool.cpp
-    src/network/NodeNetwork.cpp
-    src/test/crypto.cpp
+        src/Block.cpp
+        src/Blockchain.cpp
+        src/transaction/BlockTransactions.cpp
+        src/transaction/Output.cpp
+        src/transaction/OutputReference.cpp
+        src/transaction/Transaction.cpp
+        src/transaction/TransactionPool.cpp
+        src/network/NodeNetwork.cpp
+        src/test/crypto.cpp
 )
 
 set_target_properties(blockchain_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_include_directories(blockchain_core
-  PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/transaction
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/network
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/test
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui
-    ${Boost_INCLUDE_DIRS}
+        PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/transaction
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/network
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/test
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ui
 )
 
+# Ajouter Boost include dirs si nécessaire
+if(Boost_INCLUDE_DIRS)
+  target_include_directories(blockchain_core PUBLIC ${Boost_INCLUDE_DIRS})
+endif()
+
+# Ajouter miniupnpc include dirs si trouvé
 if(MINIUPNPC_INC)
   target_include_directories(blockchain_core PUBLIC ${MINIUPNPC_INC})
 endif()
 
+# Link libraries
 target_link_libraries(blockchain_core
-  PUBLIC
-    ${BOOST_SYSTEM_TARGET}
-    ${BOOST_HEADERS_TGT}
-    OpenSSL::Crypto
-    OpenSSL::SSL
-    Threads::Threads
+        PUBLIC
+        OpenSSL::Crypto
+        OpenSSL::SSL
+        Threads::Threads
+        ${MINIUPNPC_TARGET}
 )
 
-if(MINIUPNPC_LIB)
-  target_link_libraries(blockchain_core PUBLIC ${MINIUPNPC_LIB})
+# Boost linking
+if(TARGET Boost::system)
+  target_link_libraries(blockchain_core PUBLIC Boost::system)
+elseif(Boost_SYSTEM_LIBRARY)
+  target_link_libraries(blockchain_core PUBLIC ${Boost_SYSTEM_LIBRARY})
 else()
-  target_link_libraries(blockchain_core PUBLIC miniupnpc)
+  message(FATAL_ERROR "Boost::system not found")
+endif()
+
+if(TARGET Boost::headers)
+  target_link_libraries(blockchain_core PUBLIC Boost::headers)
 endif()
 
 if(WIN32)
@@ -127,7 +144,7 @@ endif()
 # ================== APP: Qt Quick ==================
 # IMPORTANT: Compiler les ressources QRC AVANT l'exécutable
 qt6_add_resources(QRC_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/resources.qrc
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/resources.qrc
 )
 
 # Debug pour vérifier
@@ -135,68 +152,67 @@ message(STATUS "Building Qt app with resources: ${CMAKE_CURRENT_SOURCE_DIR}/src/
 
 # Créer l'exécutable avec les ressources compilées
 qt_add_executable(appBlockchain_desktop_PDG
-    src/main.cpp
-    ${QRC_SOURCES}
-    src/ui/WalletBackend.cpp
-    src/ui/TransactionListModel.hpp  # CRUCIAL: Les ressources DOIVENT être ici
+        src/main.cpp
+        ${QRC_SOURCES}  # CRUCIAL: Les ressources DOIVENT être ici
+        src/ui/WalletBackend.cpp
+        src/ui/TransactionListModel.hpp
 )
 
 # S'assurer que c'est une app Windows GUI
 if(WIN32)
-    set_target_properties(appBlockchain_desktop_PDG PROPERTIES
-        WIN32_EXECUTABLE TRUE
-    )
+  set_target_properties(appBlockchain_desktop_PDG PROPERTIES
+          WIN32_EXECUTABLE TRUE
+  )
 endif()
 
 target_link_libraries(appBlockchain_desktop_PDG
-  PRIVATE
-    Qt6::Core
-    Qt6::Quick
-    Qt6::QuickControls2
-    Qt6::Qml
-    Qt6::Core5Compat
-    blockchain_core
-    ${BOOST_SYSTEM_TGT}
+        PRIVATE
+        Qt6::Core
+        Qt6::Quick
+        Qt6::QuickControls2
+        Qt6::Qml
+        Qt6::Core5Compat
+        blockchain_core
 )
 
 # Point tools to your local QML imports
 set(QML_IMPORT_PATH
-  ${CMAKE_CURRENT_SOURCE_DIR}/qml
-  CACHE STRING "QML import path" FORCE
+        ${CMAKE_CURRENT_SOURCE_DIR}/qml
+        CACHE STRING "QML import path" FORCE
 )
 
 set_target_properties(appBlockchain_desktop_PDG PROPERTIES
-  MACOSX_BUNDLE_GUI_IDENTIFIER com.cryptowallet.app
-  MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-  MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-  MACOSX_BUNDLE TRUE
-  WIN32_EXECUTABLE TRUE
+        MACOSX_BUNDLE_GUI_IDENTIFIER com.cryptowallet.app
+        MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+        MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+        MACOSX_BUNDLE TRUE
+        WIN32_EXECUTABLE TRUE
 )
 
 include(GNUInstallDirs)
 install(TARGETS appBlockchain_desktop_PDG
-  BUNDLE DESTINATION .
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        BUNDLE DESTINATION .
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 # DEBUG: Afficher la taille de l'exe après build
 if(WIN32)
   add_custom_command(TARGET appBlockchain_desktop_PDG POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E echo "=== BUILD COMPLETE ==="
-    COMMAND ${CMAKE_COMMAND} -E echo "Executable: $<TARGET_FILE:appBlockchain_desktop_PDG>"
-    COMMAND ${CMAKE_COMMAND} -E echo "Check that exe size is > 500KB"
-    COMMAND powershell -Command "if (Test-Path '$<TARGET_FILE:appBlockchain_desktop_PDG>') { $size = (Get-Item '$<TARGET_FILE:appBlockchain_desktop_PDG>').Length / 1KB; Write-Host \"Exe size: ${size}KB\" -ForegroundColor $(if ($size -gt 500) {'Green'} else {'Red'}) }"
+          COMMAND ${CMAKE_COMMAND} -E echo "=== BUILD COMPLETE ==="
+          COMMAND ${CMAKE_COMMAND} -E echo "Executable: $<TARGET_FILE:appBlockchain_desktop_PDG>"
+          COMMAND ${CMAKE_COMMAND} -E echo "Check that exe size is > 500KB"
+          COMMAND powershell -Command "if (Test-Path '$<TARGET_FILE:appBlockchain_desktop_PDG>') { $size = (Get-Item '$<TARGET_FILE:appBlockchain_desktop_PDG>').Length / 1KB; Write-Host \"Exe size: ${size}KB\" -ForegroundColor $(if ($size -gt 500) {'Green'} else {'Red'}) }"
   )
 elseif(APPLE)
   add_custom_command(TARGET appBlockchain_desktop_PDG POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E echo "Build macOS: $<TARGET_BUNDLE_DIR:appBlockchain_desktop_PDG>"
+          COMMAND ${CMAKE_COMMAND} -E echo "Build macOS: $<TARGET_BUNDLE_DIR:appBlockchain_desktop_PDG>"
   )
 else()
   add_custom_command(TARGET appBlockchain_desktop_PDG POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E echo "Build Linux: $<TARGET_FILE:appBlockchain_desktop_PDG>"
-    COMMAND ${CMAKE_COMMAND} -E echo "Size check:"
-    COMMAND ls -lh "$<TARGET_FILE:appBlockchain_desktop_PDG>"
+          COMMAND ${CMAKE_COMMAND} -E echo "Build Linux: $<TARGET_FILE:appBlockchain_desktop_PDG>"
+          COMMAND ${CMAKE_COMMAND} -E echo "Size check:"
+          COMMAND ls -lh "$<TARGET_FILE:appBlockchain_desktop_PDG>"
   )
 endif()
 
@@ -219,4 +235,5 @@ message(STATUS "Qt Version:     ${Qt6_VERSION}")
 message(STATUS "Tests Enabled:  ${BUILD_TESTS}")
 message(STATUS "QML Import Path:${QML_IMPORT_PATH}")
 message(STATUS "Resources:      ${CMAKE_CURRENT_SOURCE_DIR}/src/resources.qrc")
+message(STATUS "miniupnpc target: ${MINIUPNPC_TARGET}")
 message(STATUS "========================================")
