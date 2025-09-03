@@ -99,35 +99,55 @@ jobs:
           cache: true
 
       # ===== vcpkg =====
-      - name: vcpkg build
-        id: vcpkg
-        uses: johnwason/vcpkg-action@v7
-        with:
-            pkgs: boost-system boost-asio openssl miniupnpc cereal
-            triplet: ${{ runner.os == 'Windows' && 'x64-windows' || runner.os == 'macOS' && 'universal-osx' || 'x64-linux' }}
-            token: ${{ github.token }}
-
-      - name: Select vcpkg triplet
+      - name: Setup vcpkg
         shell: bash
         run: |
           if [ "${{ runner.os }}" = "Windows" ]; then
-            echo "VCPKG_DEFAULT_TRIPLET=x64-windows" >> $GITHUB_ENV
+            git clone https://github.com/Microsoft/vcpkg.git
+            cd vcpkg
+            ./bootstrap-vcpkg.bat
+            echo "VCPKG_ROOT=$PWD" >> $GITHUB_ENV
+            echo "$PWD" >> $GITHUB_PATH
           elif [ "${{ runner.os }}" = "macOS" ]; then
-            echo "VCPKG_DEFAULT_TRIPLET=universal-osx" >> $GITHUB_ENV
+            git clone https://github.com/Microsoft/vcpkg.git
+            cd vcpkg
+            ./bootstrap-vcpkg.sh
+            echo "VCPKG_ROOT=$PWD" >> $GITHUB_ENV
+            echo "$PWD" >> $GITHUB_PATH
           else
-            echo "VCPKG_DEFAULT_TRIPLET=x64-linux" >> $GITHUB_ENV
+            git clone https://github.com/Microsoft/vcpkg.git
+            cd vcpkg
+            ./bootstrap-vcpkg.sh
+            echo "VCPKG_ROOT=$PWD" >> $GITHUB_ENV
+            echo "$PWD" >> $GITHUB_PATH
           fi
-          echo "Using triplet: $VCPKG_DEFAULT_TRIPLET"
+
+      - name: Install vcpkg dependencies
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            triplet="x64-windows"
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            triplet="x64-osx"
+          else
+            triplet="x64-linux"
+          fi
+          echo "VCPKG_DEFAULT_TRIPLET=$triplet" >> $GITHUB_ENV
+          
+          cd vcpkg
+          ./vcpkg install --triplet $triplet
 
       # ===== Configure / Build =====
       - name: Configure (CMake + Ninja)
+        shell: bash
         run: |
-            cmake ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} \
+            cmake \
             -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} \
             -DCMAKE_PREFIX_PATH="$QTDIR" \
             -DUSE_SYSTEM_MINIUPNPC=OFF \
-            -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            ${{ runner.os == 'macOS' && '-DCMAKE_OSX_ARCHITECTURES=x86_64' || '' }}
 
       - name: Build
         run: cmake --build ${{ env.BUILD_DIR }} --parallel
@@ -162,7 +182,6 @@ jobs:
           APPDIR=AppDir
           mkdir -p $APPDIR/usr/bin
           mkdir -p $APPDIR/usr/share/applications
-          mkdir -p $APPDIR/usr/share/icons/hicolor/256x256/apps
 
           cp ${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG $APPDIR/usr/bin/
 
@@ -171,11 +190,8 @@ jobs:
           Type=Application
           Name=Blockchain Desktop PDG
           Exec=appBlockchain_desktop_PDG
-          Icon=appBlockchain_desktop_PDG
           Categories=Utility;
           EOF
-
-          #cp Blockchain_desktop_PDG/resources/icon.png $APPDIR/usr/share/icons/hicolor/256x256/apps/appBlockchain_desktop_PDG.png || true
 
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage

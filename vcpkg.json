@@ -1,0 +1,12 @@
+{
+  "name": "blockchain-desktop-pdg",
+  "version": "1.0.0",
+  "description": "Blockchain Desktop PDG dependencies",
+  "dependencies": [
+    "boost-system",
+    "boost-asio",
+    "openssl",
+    "miniupnpc",
+    "cereal"
+  ]
+}
