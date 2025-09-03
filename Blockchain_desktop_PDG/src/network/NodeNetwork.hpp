@@ -120,46 +120,83 @@ private:
 
     bool openPort() {
         bool success = false;
+
         UPNPDev* devlist = nullptr;
         int error = 0;
-        devlist = upnpDiscover(2000, nullptr, nullptr, 0, 0, 2, &error);
 
-        UPNPUrls urls{}; IGDdatas data{};
+        // upnpDiscover signature "récente" (avec TTL). OK avec vcpkg.
+        devlist = upnpDiscover(2000, /*multicastif*/nullptr, /*minissdpdsock*/nullptr,
+                               /*sameport*/0, /*ipv6*/0, /*ttl*/2, &error);
+
+        UPNPUrls urls{};
+        IGDdatas data{};
         char lanaddr[64] = {0};
+        char wanaddr[64] = {0};
 
-        int igd = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
+        // Compat API : versions récentes demandent WAN aussi.
+        int igd = 0;
+#if defined(MINIUPNPC_API_VERSION) && (MINIUPNPC_API_VERSION >= 18)
+        igd = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr),
+                               wanaddr, sizeof(wanaddr));
+#else
+        igd = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
+#endif
+
         freeUPNPDevlist(devlist);
 
         if (igd == 1) {
             std::string port_str = std::to_string(listenPort_);
             int rc = UPNP_AddPortMapping(urls.controlURL, data.first.servicetype,
                                          port_str.c_str(), port_str.c_str(),
-                                         lanaddr, "Blockchain", "TCP", nullptr, "0");
+    #if defined(MINIUPNPC_API_VERSION) && (MINIUPNPC_API_VERSION >= 18)
+                                         lanaddr,
+    #else
+                                         lanaddr, // ancienne API, même paramètre
+    #endif
+                                         "Blockchain", "TCP", nullptr, "0");
             success = (rc == UPNPCOMMAND_SUCCESS);
             FreeUPNPUrls(&urls);
+        } else {
+            // Pas d'IGD valide → on continue sans UPnP
+            success = false;
         }
+
         if (success)
-            std::cout << "UPnP mapping OK on " << listenPort_ << std::endl;
+            std::cout << "UPnP mapping OK on port " << listenPort_ << std::endl;
         else
             std::cout << "UPnP mapping not available; continuing local listen" << std::endl;
+
         return success;
     }
 
     void closePort() {
         UPNPDev* devlist = nullptr;
         int error = 0;
+
         devlist = upnpDiscover(2000, nullptr, nullptr, 0, 0, 2, &error);
 
-        UPNPUrls urls{}; IGDdatas data{};
+        UPNPUrls urls{};
+        IGDdatas data{};
         char lanaddr[64] = {0};
+        char wanaddr[64] = {0};
 
-        int igd = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
+        int igd = 0;
+#if defined(MINIUPNPC_API_VERSION) && (MINIUPNPC_API_VERSION >= 18)
+        igd = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr),
+                               wanaddr, sizeof(wanaddr));
+#else
+        igd = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
+#endif
+
         freeUPNPDevlist(devlist);
 
         if (igd == 1) {
             std::string port_str = std::to_string(listenPort_);
-            UPNP_DeletePortMapping(urls.controlURL, data.first.servicetype,
-                                   port_str.c_str(), "TCP", nullptr);
+            int rc = UPNP_DeletePortMapping(urls.controlURL, data.first.servicetype,
+                                            port_str.c_str(), "TCP", nullptr);
+            if (rc != UPNPCOMMAND_SUCCESS) {
+                std::cout << "Failed to delete port mapping" << std::endl;
+            }
             FreeUPNPUrls(&urls);
         }
     }
