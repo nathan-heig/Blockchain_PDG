@@ -23,9 +23,17 @@ endif()
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Quick QuickControls2 Qml Core5Compat Test)
 qt_standard_project_setup(REQUIRES 6.5)
 
-find_package(Boost CONFIG REQUIRED COMPONENTS system)
+
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system)
+set(BOOST_SYSTEM_TARGET "") # Vérifier les anciens package
+if(TARGET Boost::system)
+  set(BOOST_SYSTEM_TARGET Boost::system)
+else()
+  # FindBoost classique : variables de sortie
+  set(BOOST_SYSTEM_TARGET ${Boost_LIBRARIES})
+endif()
 
 # -------- miniupnpc detection --------
 set(MINIUPNPC_LIB "")
@@ -88,7 +96,7 @@ endif()
 
 target_link_libraries(blockchain_core
   PUBLIC
-    Boost::system
+    ${BOOST_SYSTEM_TARGET}
     OpenSSL::Crypto
     OpenSSL::SSL
     Threads::Threads
@@ -137,7 +145,7 @@ target_link_libraries(appBlockchain_desktop_PDG
     Qt6::Qml
     Qt6::Core5Compat
     blockchain_core
-    Boost::system
+    ${BOOST_SYSTEM_TARGET}
 )
 
 # Point tools to your local QML imports
