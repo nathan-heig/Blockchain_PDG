@@ -210,6 +210,7 @@ jobs:
           
           # Set version
           export VERSION=$(git describe --tags --always --dirty)
+          export QML_SOURCES_PATHS=Blockchain_desktop_PDG/qml
 
           # Run linuxdeploy
           ./linuxdeploy-x86_64.AppImage --appdir AppDir \
