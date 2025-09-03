@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 
+# Set modern CMake policies
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW) # Prefer Config mode for FindBoost
+endif()
+
 # ================== PROJECT ==================
 project(BlockchainSuite VERSION 0.1 LANGUAGES CXX)
 
@@ -26,11 +31,8 @@ qt_standard_project_setup(REQUIRES 6.4)
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 
-# Boost detection
-find_package(Boost CONFIG QUIET COMPONENTS system)
-if(NOT Boost_FOUND)
-  find_package(Boost REQUIRED COMPONENTS system)
-endif()
+# Boost detection - prefer vcpkg CONFIG mode
+find_package(Boost CONFIG REQUIRED COMPONENTS system)
 
 # -------- miniupnpc detection --------
 find_package(miniupnpc CONFIG QUIET)
