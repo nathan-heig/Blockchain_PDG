@@ -3,6 +3,7 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+
 jobs:
   build-test:
     strategy:
@@ -23,6 +24,7 @@ jobs:
       BUILD_DIR: build
       CMAKE_BUILD_TYPE: Release
       QT_VER: 6.8.3
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,7 +36,6 @@ jobs:
       - name: Setup Ninja (all OS)
         uses: seanmiddleditch/gha-setup-ninja@v3
 
-      # Python pour aqt (détection modules Qt)
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -97,13 +98,13 @@ jobs:
           modules: ${{ steps.detect.outputs.modules }}
           cache: true
 
-      # ===== vcpkg pour Boost/OpenSSL/miniupnpc (toutes plateformes) =====
+      # ===== vcpkg =====
       - name: vcpkg build
         id: vcpkg
         uses: johnwason/vcpkg-action@v7
         with:
             pkgs: boost-system boost-asio openssl miniupnpc cereal
-            triplet: ${{ runner.os == 'Windows' && 'x64-windows' || runner.os == 'macOS' && 'x64-osx' || 'x64-linux' }}
+            triplet: ${{ runner.os == 'Windows' && 'x64-windows' || runner.os == 'macOS' && 'universal-osx' || 'x64-linux' }}
             token: ${{ github.token }}
 
       - name: Select vcpkg triplet
@@ -112,30 +113,21 @@ jobs:
           if [ "${{ runner.os }}" = "Windows" ]; then
             echo "VCPKG_DEFAULT_TRIPLET=x64-windows" >> $GITHUB_ENV
           elif [ "${{ runner.os }}" = "macOS" ]; then
-            echo "VCPKG_DEFAULT_TRIPLET=x64-osx" >> $GITHUB_ENV
+            echo "VCPKG_DEFAULT_TRIPLET=universal-osx" >> $GITHUB_ENV
           else
             echo "VCPKG_DEFAULT_TRIPLET=x64-linux" >> $GITHUB_ENV
           fi
           echo "Using triplet: $VCPKG_DEFAULT_TRIPLET"
 
-      - name: Install C++ deps with vcpkg
-        shell: bash
-        run: |
-          V="${VCPKG_ROOT:-${{ github.workspace }}/vcpkg}"
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            "$V/vcpkg.exe" install boost-system openssl miniupnpc --triplet "$VCPKG_DEFAULT_TRIPLET"
-          else
-            "$V/vcpkg" install boost-system openssl miniupnpc --triplet "$VCPKG_DEFAULT_TRIPLET"
-          fi
-
-      # ===== Configure / Build / Test =====
+      # ===== Configure / Build =====
       - name: Configure (CMake + Ninja)
         run: |
             cmake ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} \
             -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} \
             -DCMAKE_PREFIX_PATH="$QTDIR" \
-            -DUSE_SYSTEM_MINIUPNPC=OFF
+            -DUSE_SYSTEM_MINIUPNPC=OFF \
+            -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
 
       - name: Build
         run: cmake --build ${{ env.BUILD_DIR }} --parallel
@@ -144,33 +136,23 @@ jobs:
         run: ctest --test-dir ${{ env.BUILD_DIR }} --output-on-failure
 
       # ===== Deploy Qt Dependencies (Windows) =====
-      - name: Deploy Qt Dependencies (Windows)
+      - name: Deploy Qt (Windows)
         if: runner.os == 'Windows'
         run: |
           $windeployqt = where.exe windeployqt 2>$null | Select-Object -First 1
-          if (-not $windeployqt) {
-            if ($env:QTDIR) {
-              $windeployqt = Join-Path $env:QTDIR "bin\windeployqt.exe"
-            } else {
-              $windeployqt = "$env:QTDIR\bin\windeployqt.exe"
-            }
-          }
-          echo "Using windeployqt: $windeployqt"
-
+          if (-not $windeployqt) { $windeployqt = "$env:QTDIR\bin\windeployqt.exe" }
           $deployDir = "${{ env.BUILD_DIR }}\deploy"
           New-Item -ItemType Directory -Force -Path $deployDir | Out-Null
-
           Copy-Item "${{ env.BUILD_DIR }}\appBlockchain_desktop_PDG.exe" -Destination $deployDir
-
-          & $windeployqt --release --qmldir "Blockchain_desktop_PDG" --no-translations --no-system-d3d-compiler --no-opengl-sw "$deployDir\appBlockchain_desktop_PDG.exe"
-
+          & $windeployqt --release --qmldir "Blockchain_desktop_PDG" "$deployDir\appBlockchain_desktop_PDG.exe"
         shell: pwsh
 
-      - name: Deploy Qt Dependencies (macOS)
+      # ===== Deploy Qt Dependencies + DMG (macOS) =====
+      - name: Deploy Qt (macOS)
         if: runner.os == 'macOS'
         run: |
           macdeployqt=$(which macdeployqt || echo "$QTDIR/bin/macdeployqt")
-          "$macdeployqt" "${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG.app" -qmldir=Blockchain_desktop_PDG -always-overwrite
+          "$macdeployqt" "${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG.app" -dmg -verbose=2 -always-overwrite
         shell: bash
 
       # ===== Package AppImage (Linux) =====
@@ -193,8 +175,7 @@ jobs:
           Categories=Utility;
           EOF
 
-          # si tu as une icône -> active la ligne ci-dessous
-          # cp Blockchain_desktop_PDG/resources/icon.png $APPDIR/usr/share/icons/hicolor/256x256/apps/appBlockchain_desktop_PDG.png || true
+          #cp Blockchain_desktop_PDG/resources/icon.png $APPDIR/usr/share/icons/hicolor/256x256/apps/appBlockchain_desktop_PDG.png || true
 
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
@@ -219,8 +200,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-${{ runner.os }}
-          path: ${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG.app
-          if-no-files-found: ignore
+          path: ${{ env.BUILD_DIR }}/*.dmg
+          if-no-files-found: error
 
       - name: Upload artifact (Linux)
         if: runner.os == 'Linux'
