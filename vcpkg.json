@@ -4,10 +4,7 @@
   "description": "Blockchain Desktop PDG dependencies",
   "builtin-baseline": "ee420146102ad1e03ca0ef0574a622ae9084a00b",
   "dependencies": [
-    {
-      "name": "boost",
-      "features": ["system"]
-    },
+    "boost",
     "openssl",
     "miniupnpc",
     "cereal"

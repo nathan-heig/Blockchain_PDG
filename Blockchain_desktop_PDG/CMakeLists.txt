@@ -33,6 +33,12 @@ find_package(Threads REQUIRED)
 
 # Boost detection - prefer vcpkg CONFIG mode
 find_package(Boost CONFIG REQUIRED COMPONENTS system)
+if(TARGET Boost::system)
+  message(STATUS "Using Boost::system from vcpkg CONFIG")
+else()
+  message(WARNING "Boost::system target not found in CONFIG mode, trying legacy FindBoost")
+  find_package(Boost REQUIRED COMPONENTS system)
+endif()
 
 # -------- miniupnpc detection --------
 find_package(miniupnpc CONFIG QUIET)
