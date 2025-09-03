@@ -200,7 +200,10 @@ jobs:
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy-*.AppImage
 
-          ./linuxdeploy-x86_64.AppImage --appdir $APPDIR -e $APPDIR/usr/bin/appBlockchain_desktop_PDG -d $APPDIR/usr/share/applications/appBlockchain_desktop_PDG.desktop -i $APPDIR/usr/share/icons/hicolor/256x256/apps/appBlockchain_desktop_PDG.png --plugin qt --output appimage
+          ./linuxdeploy-x86_64.AppImage --appdir $APPDIR \
+            -e $APPDIR/usr/bin/appBlockchain_desktop_PDG \
+            -d $APPDIR/usr/share/applications/appBlockchain_desktop_PDG.desktop \
+            --plugin qt --output appimage
 
       # ===== Upload artifacts =====
       - name: Upload artifact (Windows)
