@@ -100,7 +100,6 @@ jobs:
       # ===== vcpkg pour Boost/OpenSSL/miniupnpc (toutes plateformes) =====
       - name: Setup vcpkg
         uses: microsoft/vcpkg-action@v11
-        with:
           # cache géré automatiquement par l'action (basé sur le commit vcpkg)
           # on n'utilise pas de manifest; on installe explicitement ci-dessous
           # triplet sera défini via $VCPKG_DEFAULT_TRIPLET
