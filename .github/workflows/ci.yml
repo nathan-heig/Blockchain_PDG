@@ -99,10 +99,7 @@ jobs:
 
       # ===== vcpkg pour Boost/OpenSSL/miniupnpc (toutes plateformes) =====
       - name: Setup vcpkg
-        uses: microsoft/vcpkg-action@v11
-          # cache géré automatiquement par l'action (basé sur le commit vcpkg)
-          # on n'utilise pas de manifest; on installe explicitement ci-dessous
-          # triplet sera défini via $VCPKG_DEFAULT_TRIPLET
+        uses: lukka/run-vcpkg@v11
 
       - name: Select vcpkg triplet
         shell: bash
@@ -116,9 +113,15 @@ jobs:
           fi
           echo "Using triplet: $VCPKG_DEFAULT_TRIPLET"
 
-      - name: Install C++ deps with vcpkg (Boost/OpenSSL/miniupnpc)
+      - name: Install C++ deps with vcpkg
+        shell: bash
         run: |
-          vcpkg install boost-system openssl miniupnpc --triplet $VCPKG_DEFAULT_TRIPLET
+          V="${VCPKG_ROOT:-${{ github.workspace }}/vcpkg}"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            "$V/vcpkg.exe" install boost-system openssl miniupnpc --triplet "$VCPKG_DEFAULT_TRIPLET"
+          else
+            "$V/vcpkg" install boost-system openssl miniupnpc --triplet "$VCPKG_DEFAULT_TRIPLET"
+          fi
 
       # ===== Debug Qt (facultatif) =====
       - name: Debug Qt Installation (Unix)
@@ -179,7 +182,7 @@ jobs:
         run: |
           cmake -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} \
-            -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
+            -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" \
             -DCMAKE_PREFIX_PATH="$QTDIR" \
             -DUSE_SYSTEM_MINIUPNPC=OFF
 
