@@ -102,7 +102,7 @@ jobs:
         id: vcpkg
         uses: johnwason/vcpkg-action@v7
         with:
-            pkgs: boost-system openssl miniupnpc
+            pkgs: boost-system boost-asio openssl miniupnpc cereal
             triplet: ${{ runner.os == 'Windows' && 'x64-windows' || runner.os == 'macOS' && 'x64-osx' || 'x64-linux' }}
             token: ${{ github.token }}
 

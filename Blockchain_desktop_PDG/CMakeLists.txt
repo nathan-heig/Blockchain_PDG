@@ -26,13 +26,23 @@ qt_standard_project_setup(REQUIRES 6.5)
 
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost CONFIG QUIET COMPONENTS system)
+if(NOT Boost_FOUND)
+  find_package(Boost REQUIRED COMPONENTS system)
+endif()
+
 set(BOOST_SYSTEM_TARGET "") # Vérifier les anciens package
 if(TARGET Boost::system)
   set(BOOST_SYSTEM_TARGET Boost::system)
+elseif(DEFINED Boost_SYSTEM_LIBRARY)
+  set(BOOST_SYSTEM_TGT ${Boost_SYSTEM_LIBRARY})
 else()
-  # FindBoost classique : variables de sortie
-  set(BOOST_SYSTEM_TARGET ${Boost_LIBRARIES})
+  message(FATAL_ERROR "Boost.System not found")
+endif()
+
+set(BOOST_HEADERS_TGT "")
+if(TARGET Boost::headers)
+  set(BOOST_HEADERS_TGT Boost::headers)
 endif()
 
 # -------- miniupnpc detection --------
@@ -97,6 +107,7 @@ endif()
 target_link_libraries(blockchain_core
   PUBLIC
     ${BOOST_SYSTEM_TARGET}
+    ${BOOST_HEADERS_TGT}
     OpenSSL::Crypto
     OpenSSL::SSL
     Threads::Threads
@@ -145,7 +156,7 @@ target_link_libraries(appBlockchain_desktop_PDG
     Qt6::Qml
     Qt6::Core5Compat
     blockchain_core
-    ${BOOST_SYSTEM_TARGET}
+    ${BOOST_SYSTEM_TGT}
 )
 
 # Point tools to your local QML imports
