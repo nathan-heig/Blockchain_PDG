@@ -118,35 +118,53 @@ Aucun
 ### Travail réalisé la veille
 * Avancement du backend
 ### Objectif de la journée
+* Avancer le backend encore
+* Link frontend - backend
 ### Emplacement du groupe pour la journée
+Télétravail
 ### Problèmes rencontrés la veille
 Les tests sont difficile à conceptualiser
 ### Besoins particuliers
-
+Aucun
 
 ## 1.08.25
-### Travail réalisé la veille
+### Travail réalisé vendredi
+* Backend
+* Link backend - frontend
 ### Objectif de la journée
+* Comencer vidéo de présentation
 ### Emplacement du groupe pour la journée
+Télétravail
 ### Problèmes rencontrés la veille
+On se bat contre le projet pour lier backend et frontend
 ### Besoins particuliers
-
+AUcun
 
 ## 2.08.25
 ### Travail réalisé la veille
+* Avancement du link backend et frontend
+* Trouvé un logiciel vidéo pour faire la vidéo
+* Fait la vidéo pour le site web
 ### Objectif de la journée
+* Link backend - frontend
 ### Emplacement du groupe pour la journée
+Télétravail
 ### Problèmes rencontrés la veille
+Link backend-frontend..
 ### Besoins particuliers
-
+Aucun
 
 ## 3.08.25
 ### Travail réalisé la veille
+* Debug pour link backend - frontend
 ### Objectif de la journée
+* Réussir à link le backend et le frontend
 ### Emplacement du groupe pour la journée
+Télétravail
 ### Problèmes rencontrés la veille
+Le projet
 ### Besoins particuliers
-
+Aucun
 
 ## 4.08.25
 ### Travail réalisé la veille
