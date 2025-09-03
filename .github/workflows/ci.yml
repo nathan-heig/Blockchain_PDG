@@ -98,8 +98,13 @@ jobs:
           cache: true
 
       # ===== vcpkg pour Boost/OpenSSL/miniupnpc (toutes plateformes) =====
-      - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v11
+      - name: vcpkg build
+        id: vcpkg
+        uses: johnwason/vcpkg-action@v7
+        with:
+            pkgs: boost-system openssl miniupnpc
+            triplet: ${{ runner.os == 'Windows' && 'x64-windows' || runner.os == 'macOS' && 'x64-osx' || 'x64-linux' }}
+            token: ${{ github.token }}
 
       - name: Select vcpkg triplet
         shell: bash
@@ -180,11 +185,11 @@ jobs:
       # ===== Configure / Build / Test =====
       - name: Configure (CMake + Ninja)
         run: |
-          cmake -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja \
-            -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} \
-            -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" \
-            -DCMAKE_PREFIX_PATH="$QTDIR" \
-            -DUSE_SYSTEM_MINIUPNPC=OFF
+    cmake ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} \
+      -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja \
+      -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} \
+      -DCMAKE_PREFIX_PATH="$QTDIR" \
+      -DUSE_SYSTEM_MINIUPNPC=OFF
 
       - name: Build
         run: cmake --build ${{ env.BUILD_DIR }} --parallel
