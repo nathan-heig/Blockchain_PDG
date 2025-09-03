@@ -118,16 +118,6 @@ jobs:
           fi
           echo "Using triplet: $VCPKG_DEFAULT_TRIPLET"
 
-      - name: Install C++ deps with vcpkg
-        shell: bash
-        run: |
-          V="${VCPKG_ROOT:-${{ github.workspace }}/vcpkg}"
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            "$V/vcpkg.exe" install boost-system openssl miniupnpc --triplet "$VCPKG_DEFAULT_TRIPLET"
-          else
-            "$V/vcpkg" install boost-system openssl miniupnpc --triplet "$VCPKG_DEFAULT_TRIPLET"
-          fi
-
       # ===== Debug Qt (facultatif) =====
       - name: Debug Qt Installation (Unix)
         if: runner.os != 'Windows'
