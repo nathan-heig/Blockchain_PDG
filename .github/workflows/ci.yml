@@ -197,50 +197,27 @@ jobs:
       - name: CTest
         run: ctest --test-dir ${{ env.BUILD_DIR }} --output-on-failure
 
-      # ===== Package AppImage (Linux only) =====
-      - name: Package AppImage
+      - name: Build AppImage (Linux)
         if: runner.os == 'Linux'
-        env:
-          APPIMAGE_EXTRACT_AND_RUN: 1
         run: |
-          set -euo pipefail
-          echo "Packaging AppImage..."
-          # Create desktop + icon if absent
-          mkdir -p packaging/linux/appimage
-          if [ ! -f packaging/linux/appimage/app.desktop ]; then
-            cat > packaging/linux/appimage/app.desktop <<'EOF'
-            [Desktop Entry]
-            Type=Application
-            Name=Blockchain PDG
-            Comment=Application Blockchain PDG (Qt)
-            Exec=appBlockchain_desktop_PDG
-            Icon=appBlockchain_desktop_PDG
-            Categories=Utility;Network;Education;
-            Terminal=false
-            StartupNotify=true
-EOF
-          fi
-          if [ ! -f packaging/linux/appimage/appBlockchain_desktop_PDG.png ]; then
-            # 1x1 transparent PNG placeholder
-            base64 -d > packaging/linux/appimage/appBlockchain_desktop_PDG.png <<'EOF'
-            iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==
-EOF
-          fi
-          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
-          chmod +x linuxdeploy-*.AppImage
-          export QML_SOURCES_PATHS=Blockchain_desktop_PDG
-          ./linuxdeploy-x86_64.AppImage \
-            --appdir AppDir \
+          # Download linuxdeploy and plugins
+          wget -c https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -c https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x ./linuxdeploy*.AppImage
+
+          # Prepare AppDir
+          mkdir -p AppDir
+          
+          # Set version
+          export VERSION=$(git describe --tags --always --dirty)
+
+          # Run linuxdeploy
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir \
             -e ${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG \
-            -d packaging/linux/appimage/app.desktop \
-            -i packaging/linux/appimage/appBlockchain_desktop_PDG.png \
-            --plugin qt
-          ./linuxdeploy-x86_64.AppImage --appdir AppDir --output appimage
-          SHORT_SHA=${GITHUB_SHA::7}
-          file_out=$(ls -1 *.AppImage | head -n1)
-          mv "$file_out" ${{ env.BUILD_DIR }}/Blockchain_PDG-$SHORT_SHA-x86_64.AppImage
-          echo "AppImage créée: ${{ env.BUILD_DIR }}/Blockchain_PDG-$SHORT_SHA-x86_64.AppImage"
+            -d packaging/linux/Blockchain_desktop_PDG.desktop \
+            -i packaging/linux/blockchain.svg \
+            --plugin qt \
+            --output appimage
 
       # ===== Deploy (inchangé) =====
       - name: Deploy Qt Dependencies (Windows)
@@ -307,7 +284,6 @@ EOF
         with:
           name: app-${{ runner.os }}
           path: |
-            ${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG
+            Blockchain_PDG*.AppImage
             ${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG.app
-            ${{ env.BUILD_DIR }}/Blockchain_PDG-*-x86_64.AppImage
           if-no-files-found: ignore
