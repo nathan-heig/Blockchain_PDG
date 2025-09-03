@@ -27,19 +27,43 @@ public:
     using ConnPtr = std::shared_ptr<TcpConnection>;
 
     explicit NodeNetwork(Blockchain& blockchain)
-        : io_(), acceptor_(io_, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), LISTEN_PORT)), listenPort_(LISTEN_PORT), blockchain_(blockchain) {}
+        : io_(), acceptor_(io_), blockchain_(blockchain), isRunning_(false) {}
 
     /*Lance un thread qui gère le réseau*/
-    void start() {
-        (void)openPort();
+    bool start(int listenPort = LISTEN_PORT) {
+        if (isRunning_) {
+            return false; // Déjà en cours d'exécution
+        }
+        
+        listenPort_ = listenPort;
+        
+        // Recréer l'acceptor avec le bon port
+        acceptor_ = boost::asio::ip::tcp::acceptor(io_, 
+            boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), listenPort_));
+        
+        upnpDone_ = openPort();
+
         accept();
+
+
         thread_ = std::thread([this]{ io_.run(); });
+        isRunning_ = true;
+        
+        return true;
     }
+    
     void stop() {
+        if (!isRunning_) {
+            return; // Déjà arrêté
+        }
+        
         io_.stop();
         if (thread_.joinable()) thread_.join();
         closePort();
+        isRunning_ = false;
     }
+
+    bool isRunning() const { return isRunning_; }
 
     void connect(const PeerInfo& peer) {
         auto conn = std::make_shared<TcpConnection>(io_);
@@ -74,9 +98,10 @@ private:
 
     std::unordered_map<PeerInfo, ConnPtr> peers_; // connexions sortantes
     std::unordered_map<PeerInfo, ConnPtr> incoming_; // connexions entrantes
-    std::unordered_map<PeerInfo, uint32_t> peersSize_;
+    std::atomic<bool> isRunning_;
 
     std::atomic<int> peerCount_{0};
+    bool upnpDone_{false};
 
     void accept(){
         auto conn = std::make_shared<TcpConnection>(io_);

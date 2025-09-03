@@ -10,6 +10,10 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
 
     static Blockchain blockchain;
+
+    blockchain.getNetwork().start(8186);
+    blockchain.getNetwork().connect(PeerInfo("127.0.0.1", 8185));
+
     EVP_PKEY* privKey = crypto::createPrivateKey(); // clé privée du wallet
     static BlockchainFacade blockchainFacade(blockchain, privKey);
 
