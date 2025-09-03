@@ -10,6 +10,7 @@ Rectangle {
     property string amount: ""
     property string currency: ""
     property bool isReceive: true
+    property int status: 1  // 0=pending, 1=confirmed
 
     implicitHeight: 60
     color: Theme.backgroundColor
@@ -36,6 +37,30 @@ Rectangle {
                 font.pixelSize: 14
                 font.weight: Font.Medium
                 color: root.isReceive ? Theme.positiveColor : Theme.negativeColor
+            }
+
+            RowLayout {
+                spacing: 8
+                Label {
+                    text: root.isReceive ? "Receive" : "Send"
+                    font.pixelSize: 11
+                    color: Theme.secondaryTextColor
+                }
+                Rectangle {
+                    radius: 4
+                    color: status === 1 ? Qt.rgba(0, 0.6, 0.4, 0.25) : Qt.rgba(1, 0.7, 0, 0.25)
+                    border.color: status === 1 ? "#10b981" : "#f59e0b"
+                    border.width: 1
+                    anchors.verticalCenter: parent.verticalCenter
+                    height: 18
+                    width: implicitWidth
+                    Text {
+                        anchors.centerIn: parent
+                        text: status === 1 ? "Confirmed" : "Pending"
+                        font.pixelSize: 10
+                        color: status === 1 ? "#10b981" : "#f59e0b"
+                    }
+                }
             }
         }
     }

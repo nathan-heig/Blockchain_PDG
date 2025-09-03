@@ -4,7 +4,6 @@
 #include "Transaction.hpp"
 #include <set>
 
-
 /**
  * Classe représentant le pool de transactions en attente.
  * Elle assure la gestion des transactions en attente et leur validation.
@@ -15,8 +14,7 @@ private:
 
     std::set<Transaction> transactions_;
     std::set<OutputReference> spentOutputs_;
-    std::mutex mutex_;
-
+    mutable std::mutex mutex_;
 
 public:
 
@@ -28,6 +26,10 @@ public:
 
     const std::set<Transaction>& getTransactions() const{return transactions_;}
 
+    std::set<OutputReference> getSpentOutputsSnapshot() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return spentOutputs_; // copie
+    }
 };
 
 #endif // TRANSACTION_POOL_HPP

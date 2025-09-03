@@ -81,6 +81,11 @@ bool Blockchain::addBlock(const Block& block) {
             deleteUnspentOutput(input.getOutput(*this).getPubKey(), input);
         }
     }
+
+    //Nouveau bloc accepté (hors lock)
+    if (onNewBlock) {
+        try { onNewBlock(block); } catch(...) {}
+    }
     return true;
 }
 
@@ -123,6 +128,7 @@ void Blockchain::doMine(const PubKey& minerPubKey) {
     std::thread miningThread([this, minerPubKey]() {
 
         std::cout << "Mining started in background thread." << std::endl;
+        const double alpha = 0.3;
 
         while(isMining.load()) {
             auto start = std::chrono::steady_clock::now();
@@ -130,31 +136,36 @@ void Blockchain::doMine(const PubKey& minerPubKey) {
             Block newBlock = Block::createBlock(*this, minerPubKey);
             auto end = std::chrono::steady_clock::now();
 
-            bool accepted = false;
-            {
-                if (addBlock(newBlock)) accepted = true;
-            }
+            bool accepted = addBlock(newBlock);
 
             if (accepted) {
                 // hashrate approx = nonce / durée
                 double secs = std::chrono::duration<double>(end - start).count();
                 if (secs > 0.0) {
-                    double mh = (double)newBlock.getNonce() / secs / 1e6;
-                    lastHashrateMHs.store(mh);
+                    double mh_inst = (double)newBlock.getNonce() / secs / 1e6;
+                    double prev = lastHashrateMHs.load();
+                    double ema = alpha * mh_inst + (1.0 - alpha) * prev;
+                    lastHashrateMHs.store(ema);
                 }
+
+                // TPS EMA (recalcule tps immédiat sur fenêtre)
+                {
+                    std::lock_guard<std::mutex> lk(mtx_);
+                    double tps_inst = computeTPS_NoLock(10);
+                    double prev = lastTPS_.load();
+                    double ema = alpha * tps_inst + (1.0 - alpha) * prev;
+                    lastTPS_.store(ema);
+                }
+
                 // callback ui (reward)
                 double reward = BlockTransactions::calculateMinerReward(*this, newBlock);
                 if (onBlockMined) {
                     try { onBlockMined(reward); } catch(...) {}
                 }
-                // broadcast hors lock
+                // broadcast réseau
                 network.buildFrameAndbroadcast(MsgType::BROADCAST_BLOCK, newBlock);
             }
-
-            // broadcast hors lock
-            network.buildFrameAndbroadcast(MsgType::BROADCAST_BLOCK, newBlock);
         }
-
         std::cout << "Mining stopped." << std::endl;
 });
 
@@ -162,4 +173,28 @@ void Blockchain::doMine(const PubKey& minerPubKey) {
 // Détacher le thread pour qu'il s'exécute en arrière-plan
 miningThread.detach();
 
+}
+
+double Blockchain::computeTPS_NoLock(uint32_t window) const {
+    if (blocks.size() < 2) return 0.0;
+
+    uint32_t endIdx = static_cast<uint32_t>(blocks.size() - 1);
+    uint32_t startIdx = (endIdx >= window ? endIdx - window + 1 : 0);
+
+    // Durée entre le 1er et le dernier bloc de la fenêtre
+    uint32_t t0 = blocks[startIdx].getTimestamp();
+    uint32_t t1 = blocks[endIdx].getTimestamp();
+    if (t1 <= t0) return 0.0;
+    double duration = static_cast<double>(t1 - t0);
+
+    // Nombre de tx confirmées (hors coinbase) sur la fenêtre
+    uint64_t txCount = 0;
+    for (uint32_t i = startIdx; i <= endIdx; ++i) {
+        const auto& bt = blocks[i].getBlockTransactions();
+        if (bt.size() > 0) {
+            // coinbase est la dernière → hors coinbase = size()-1 si size>0
+            txCount += (bt.size() >= 1 ? (bt.size() - 1) : 0);
+        }
+    }
+    return txCount / duration;
 }

@@ -22,15 +22,18 @@ private:
     mutable std::mutex mtx_; //protège blocks / utxos / transactionPool
     std::atomic<bool> isMining{false};
     std::atomic<double> lastHashrateMHs{0.0}; //pour les stats
+    std::atomic<double> lastTPS_{0.0};
 
     /*Ajoute une sortie non dépensée à la liste*/
     void addUnspentOutput(const PubKey& pubKey, const OutputReference& outputRef) {utxos[pubKey].insert(outputRef);}
     /*Supprime une sortie non dépensée de la liste*/
     void deleteUnspentOutput(const PubKey& pubKey, const OutputReference& outputRef) {utxos[pubKey].erase(outputRef);}
 
+    double computeTPS_NoLock(uint32_t window = 10) const;
 public:
 
     std::function<void(double)> onBlockMined; //reward en param
+    std::function<void(const Block&)> onNewBlock; // nouveau bloc accepté (local ou réseau)
 
     // Constructor
     Blockchain(){}
@@ -40,10 +43,13 @@ public:
     double getWalletBalance(const PubKey& pubKey) const;
     /*Retourne une référence constante sur le bloc à l'index donné*/
     const Block& operator[](const size_t index) const { std::lock_guard<std::mutex> lk(mtx_); return blocks[index]; }
-    UTXOs getUTXOsSnapshot() const;
-    double getHashrate() const { return lastHashrateMHs.load(); }
+
 
     // Getters
+    UTXOs getUTXOsSnapshot() const;
+    double getHashrate() const { return lastHashrateMHs.load(); }
+    double getTPS() const { return lastTPS_.load(); }
+
     /*Retourne un object Transactions prêt a etre ajouté dans un bloc*/
     const BlockTransactions getNewBlockTransactions(const PubKey& minerPubKey) const {return BlockTransactions(*this, transactionPool, minerPubKey);}
     /*Retourne le mining reward a un index donné*/

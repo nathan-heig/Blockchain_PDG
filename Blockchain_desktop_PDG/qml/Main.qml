@@ -12,32 +12,54 @@ ApplicationWindow {
     minimumWidth: 800; minimumHeight: 600
     title: qsTr("Skibidi Coin")
     color: Theme.backgroundColor
+    readonly property bool backendReady: (typeof backend !== "undefined" && backend !== null)
+
 
     // NOTE: backend est fourni par C++ via contextProperty("backend", &backend)
-    // => Pas de property var backend: ... ici
 
-    // Petites aides UI
-    function showInfo(msg) { console.log(msg) } // remplace un vrai toast/dialog si besoin
+    property alias toastVisible: toast.visible
+    function showInfo(msg) {
+        toast.text = msg
+        toast.open()
+    }
+
+    Popup {
+        id: toast
+        x: (parent.width - width)/2
+        y: parent.height - height - 30
+        modal: false
+        focus: false
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        contentItem: Rectangle {
+            color: Theme.panelColor
+            radius: 8
+            Text {
+                id: toastText
+                text: toast.text
+                color: Theme.textColor
+                font.pixelSize: 14
+            }
+        }
+        property string text: ""
+        onVisibleChanged: if (visible) Qt.createQmlObject('import QtQuick 2.15; Timer { interval: 2000; running: true; repeat: false; onTriggered: toast.close(); }', toast, "ToastTimer")
+    }
 
     Connections {
-        target: backend
+        target: backendReady ? backend : null
 
         function onTransactionSent(success, message) {
-            if (success) {
-                showInfo("Transaction sent: " + message + " SKBC")
-            } else {
-                showInfo("Transaction failed: " + message)
-            }
+            if (success) showInfo("Transaction envoyée: " + message + " SKBC")
+            else showInfo("Échec de l’envoi: " + message)
         }
 
         function onBlockMined(reward) {
-            showInfo("Block mined! +" + reward + " SKBC")
+            showInfo("Bloc miné ! +" + reward + " SKBC")
         }
 
         function onAddressGenerated(address) {
-            showInfo("Receive address: " + address)
+            showInfo("Adresse: " + address)
         }
-        // function onBalanceChanged() { /* binding auto via Q_PROPERTY */ }
+
     }
 
     RowLayout {
@@ -67,25 +89,25 @@ ApplicationWindow {
                 StatsItem {
                     iconSource: "qrc:/icons/miners.svg"
                     label: "Mineurs"
-                    value: String(backend.mineurs)
+                    value: backendReady ? String(backend.mineurs) : "0"
                     Layout.fillWidth: true
                 }
                 StatsItem {
                     iconSource: "qrc:/icons/hashrate.svg"
                     label: "Hashrate"
-                    value: backend.hashrate.toFixed(2) + " MH/s"
+                    value: backendReady ? backend.hashrate.toFixed(2) + " MH/s" : "0.00 MH/s"
                     Layout.fillWidth: true
                 }
                 StatsItem {
                     iconSource: "qrc:/icons/block.svg"
                     label: "Bloc"
-                    value: "#" + String(backend.blockCount)
+                    value: "#" + (backendReady ? String(backend.blockCount) : "0")
                     Layout.fillWidth: true
                 }
                 StatsItem {
                     iconSource: "qrc:/icons/tps.svg"
                     label: "TPS"
-                    value: backend.tps.toFixed(2)
+                    value: backendReady ? backend.tps.toFixed(2) : "0.00"
                     Layout.fillWidth: true
                 }
 
@@ -100,7 +122,7 @@ ApplicationWindow {
             }
         }
 
-        // --- Panel central (Balance + actions) ---
+        // Panel central - Balance et actions
         ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -141,8 +163,13 @@ ApplicationWindow {
                         }
                         Label {
                             Layout.alignment: Qt.AlignHCenter
-                            text: backend.balance.toLocaleString(Qt.locale(), 'f', 2)
+                            text: backendReady ? backend.balance.toLocaleString(Qt.locale(), 'f', 2) : "0.00"
                             font.pixelSize: 48; font.weight: Font.Bold; color: Theme.textColor
+                        }
+                        Label {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: "Spendable: " + (backendReady ? backend.spendableBalance.toLocaleString(Qt.locale(), 'f', 2) : "0.00") + " SKBC"
+                            font.pixelSize: 12; color: Theme.secondaryTextColor
                         }
                         Label {
                             Layout.alignment: Qt.AlignHCenter
@@ -155,9 +182,39 @@ ApplicationWindow {
                     MiningButton {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 50
-                        isMining: backend.isMining
+                        isMining: backendReady && backend.isMining
                         text: isMining ? "Arrêter le mining" : "Démarrer le mining"
-                        onClicked: backend.setIsMining(!backend.isMining)
+                        onClicked: if (backendReady) backend.setIsMining(!backend.isMining)
+                    }
+
+                    // Mon adresse + copier
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        TextField {
+                            id: myAddr
+                            Layout.fillWidth: true
+                            readOnly: true
+                            text: backendReady ? backend.myAddress : ""
+                            placeholderText: "Mon adresse"
+                            selectByMouse: true
+                        }
+                        Button {
+                            text: "Copier"
+                            enabled: backendReady && myAddr.text.length > 0
+                            onClicked: {
+                                Qt.application.clipboard.setText(myAddr.text)
+                                showInfo("Adresse copiée")
+                            }
+                        }
+                    }
+
+                    // Adresse destinataire (ID visible pour le bouton ci-dessous)
+                    TextField {
+                        id: dest
+                        Layout.fillWidth: true
+                        placeholderText: "Adresse (pubkey) du destinataire"
+                        selectByMouse: true
                     }
 
                     // Send / Receive
@@ -170,8 +227,14 @@ ApplicationWindow {
                             Layout.preferredHeight: 50
                             text: "Send 1.00 SKBC"
                             isPrimary: true
-                            enabled: backend.balance >= 1.01
-                            onClicked: backend.sendTransaction(1.0, "")
+                            enabled: backendReady
+                                && backend.spendableBalance >= 1.01
+                                && dest.text.length > 0
+                                && backend.isAddressValid(dest.text)
+                            onClicked: {
+                                if (!backendReady) return
+                                backend.sendTransaction(1.0, dest.text)
+                            }
                         }
 
                         ActionButton {
@@ -179,12 +242,17 @@ ApplicationWindow {
                             Layout.preferredHeight: 50
                             text: "Receive"
                             isPrimary: false
-                            onClicked: backend.receiveCoins()
+                            onClicked: {
+                                if (!backendReady) return
+                                backend.receiveCoins()
+                                showInfo("Votre adresse est affichée ci-dessus")
+                            }
                         }
                     }
                 }
             }
         }
+
 
         // --- Panel droit (Historique) ---
         Rectangle {
@@ -209,11 +277,9 @@ ApplicationWindow {
                     Layout.fillHeight: true
                     clip: true
 
-                    // Si tu as un modèle C++: model: backend.txModel
-                    // En attendant, tu peux laisser ton ListModel QML ou passer plus tard
                     ListView {
                         id: transactionList
-                        model: backend.txModel   // <-- recommandé, côté C++
+                        model: backendReady ? backend.txModel : null
                         spacing: 10
 
                         delegate: TransactionItem {
@@ -222,6 +288,7 @@ ApplicationWindow {
                             amount: (model.isReceive ? "+" : "-") + Number(model.amount).toFixed(2)
                             currency: model.currency
                             isReceive: model.isReceive
+                            status: model.status
                         }
                     }
                 }

@@ -1,4 +1,5 @@
 #include "ui/WalletBackend.hpp"
+#include "network/BinaryProtocol.hpp"
 #include <QStandardPaths>
 #include <QFile>
 #include <QDir>
@@ -86,6 +87,25 @@ void WalletBackend::ensureKeyLoaded() {
         m_fromPubKey.clear();
     }
 
+    m_chain.onNewBlock = [this](const Block& b){
+        QMetaObject::invokeMethod(this, [this, &b]{
+            // Marquer confirmed toutes nos pending incluses dans ce bloc
+            for (size_t i = 0; i < b.getBlockTransactions().size(); ++i) {
+                const Transaction& tx = b.getBlockTransactions()[i];
+                if (tx.getOutputs().size() == 1 && tx.getInputs().empty()) {
+                    // coinbase : ignorer
+                    continue;
+                }
+                QString id = txIdFromTransaction(tx);
+                if (m_pendingTxIds.erase(id) > 0) {
+                    // status: confirmed
+                    m_txModel->setConfirmedByTxId(id);
+                }
+            }
+            // Balance/spendable seront rafraîchies par le polling
+        }, Qt::QueuedConnection);
+    };
+
     m_chain.onBlockMined = [this](double reward){
         QMetaObject::invokeMethod(this, [this, reward]{
             TxRow row;
@@ -98,6 +118,8 @@ void WalletBackend::ensureKeyLoaded() {
             // la balance sera rafraîchie par le polling
         }, Qt::QueuedConnection);
     };
+
+
 }
 
 
@@ -156,17 +178,42 @@ void WalletBackend::refreshComputedProps() {
     // Balance : solde de NOTRE clé
     // Utilise la pubkey en cache
     if (!m_fromPubKey.empty()) {
-        double b = m_chain.getWalletBalance(m_fromPubKey);
-        if (b != m_balance) { m_balance = b; emit balanceChanged(); }
+        double confirmed = m_chain.getWalletBalance(m_fromPubKey);
+
+        // Snapshot des outputs verrouillés en mempool
+        auto spentSnap = m_chain.getTransactionPool().getSpentOutputsSnapshot();
+        double locked = 0.0;
+        for (const auto& ref : spentSnap) {
+            try {
+                const Output& out = ref.getOutput(m_chain);
+                if (out.getPubKey() == m_fromPubKey) {
+                    locked += out.getValue();
+                }
+            } catch (...) {
+                // ignore ref invalide
+            }
+        }
+
+        if (confirmed != m_balance) {
+            m_balance = confirmed;
+            emit balanceChanged();
+        }
+        double spend = std::max(0.0, confirmed - locked);
+        if (spend != m_spendable) {
+            m_spendable = spend;
+            emit spendableBalanceChanged();
+        }
     }
 
     // Stubs (on branchera plus tard)
     // mineurs, hashrate, tps
     int miners = m_chain.getNetwork().peerCount();
     if (miners != m_mineurs) { m_mineurs = miners; emit mineursChanged(); }
+
     double hr = m_chain.getHashrate();
     if (hr != m_hashrate) { m_hashrate = hr; emit hashrateChanged(); }
-    double tpsV = 0.0;
+
+    double tpsV = m_chain.getTPS();
     if (tpsV != m_tps) { m_tps = tpsV; emit tpsChanged(); }
 }
 
@@ -188,29 +235,32 @@ void WalletBackend::setIsMining(bool on) {
 
 void WalletBackend::sendTransaction(double amount, const QString& toAddress) {
     if (!m_key) { emit transactionSent(false, "Wallet not initialized"); return; }
+    if (m_fromPubKey.empty()) { emit transactionSent(false, "Public key unavailable"); return; }
+
     try {
         const PubKey fromPub = m_fromPubKey;
-        const PubKey toPub = toAddress.isEmpty()
-        ? crypto::getPubKey(m_key)               // self
-        : toAddress.toStdString();               // MVP: on suppose l’adresse == PubKey string
-
+        const PubKey toPub = toAddress.isEmpty() ? fromPub : toAddress.toStdString();
         const double fee = 0.01;
+
         auto tx = Transaction::createWithFromPub(m_key, fromPub, toPub, amount, fee, m_chain);
 
-        // Ajout + broadcast
-        const bool ok = m_chain.addAndBroadCastTransaction(tx);
-        if (!ok) {
-            emit transactionSent(false, "Rejected by mempool");
-            return;
-        }
+        // Txid
+        const QString txid = txIdFromTransaction(tx);
 
-        // Historique UI immédiat (côté wallet)
+        const bool ok = m_chain.addAndBroadCastTransaction(tx);
+        if (!ok) { emit transactionSent(false, "Rejected by mempool"); return; }
+
+        // Enregistre comme pending
+        m_pendingTxIds.insert(txid);
+
+        // Historique pending
         TxRow row;
-        row.txId = QStringLiteral("0x%1").arg(QString::number(QDateTime::currentMSecsSinceEpoch(), 16));
+        row.txId = txid;
         row.amount = amount;
         row.currency = "SKBC";
         row.isReceive = false;
         row.timestamp = QDateTime::currentSecsSinceEpoch();
+        row.status = 0; // pending
         m_txModel->append(row);
 
         emit transactionSent(true, QString::number(amount));
@@ -221,8 +271,19 @@ void WalletBackend::sendTransaction(double amount, const QString& toAddress) {
     }
 }
 
+
 void WalletBackend::receiveCoins() {
-    // MVP: juste émettre l’adresse de réception (PubKey sous forme de string)
     const auto addr = publicAddressHex();
     emit addressGenerated(addr);
 }
+
+bool WalletBackend::isAddressValid(const QString& addr) const {
+    if (addr.isEmpty()) return false;
+    if (addr.size() < 16 || addr.size() > 256) return false;
+    for (const QChar& c : addr) {
+        ushort uc = c.unicode();
+        if (uc < 33 || uc > 126) return false; // ASCII imprimable simple
+    }
+    return true;
+}
+
