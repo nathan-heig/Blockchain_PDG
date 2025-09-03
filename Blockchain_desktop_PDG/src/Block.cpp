@@ -2,7 +2,7 @@
 #include "Blockchain.hpp"
 
 
-Block Block::createBlock(const Blockchain& blockchain, const PubKey& minerPubKey) {
+Block Block::createBlock(const Blockchain& blockchain, const PubKey& minerPubKey, const std::atomic<bool>* continueFlag) {
 
 
     Block block;
@@ -18,7 +18,7 @@ Block Block::createBlock(const Blockchain& blockchain, const PubKey& minerPubKey
     do {
         ++block.nonce;
         block.hash = block.calculateHash();
-    } while (!block.hashMatchesDifficulty() && (block.index == blockchain.size()));
+    } while (!block.hashMatchesDifficulty() && (block.index == blockchain.size()) && continueFlag->load());
 
     return block;
 }

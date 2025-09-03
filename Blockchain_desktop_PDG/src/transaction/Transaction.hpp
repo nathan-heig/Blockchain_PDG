@@ -79,6 +79,21 @@ public:
     const Outputs& getOutputs() const { return outputs; }
     const double getFee(const Blockchain& blockchain) const;
     const std::string getStrToSign() const;
+    bool isInTransaction(const PubKey& pubKey, const Blockchain& blockchain) const{
+        for (const auto& input : inputs) {
+            if (input.getOutput(blockchain).getPubKey() == pubKey) {
+                return true;
+            }
+        }
+        for (const auto& output : outputs) {
+            if (output.getPubKey() == pubKey) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    std::string getTransactionWalletStr(const PubKey& pubKey, const Blockchain& blockchain) const;
 
     //Signature methods
     void sign(EVP_PKEY* privateKey) {signature = crypto::signData(this->getStrToSign(), privateKey);}

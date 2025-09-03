@@ -20,8 +20,8 @@ if(MSVC)
 endif()
 
 # ================== DEPENDENCIES ==================
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Quick QuickControls2 Qml Core5Compat Test)
-qt_standard_project_setup(REQUIRES 6.5)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Quick QuickControls2 Qml Core5Compat Test)
+qt_standard_project_setup(REQUIRES 6.4)
 
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
@@ -152,10 +152,9 @@ message(STATUS "Building Qt app with resources: ${CMAKE_CURRENT_SOURCE_DIR}/src/
 
 # Créer l'exécutable avec les ressources compilées
 qt_add_executable(appBlockchain_desktop_PDG
-        src/main.cpp
-        ${QRC_SOURCES}  # CRUCIAL: Les ressources DOIVENT être ici
-        src/ui/WalletBackend.cpp
-        src/ui/TransactionListModel.hpp
+    src/main.cpp
+    ${QRC_SOURCES}
+    src/ui/BlockchainFacade.hpp
 )
 
 # S'assurer que c'est une app Windows GUI

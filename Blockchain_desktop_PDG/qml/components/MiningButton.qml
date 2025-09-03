@@ -1,35 +1,37 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Controls
 import "../styles"
 
 Button {
     id: root
 
-    property bool isMining: false
-    text: isMining ? "Mining en cours..." : "Mining en cours..." //a modifier
+    text: BlockchainAPI.mining ? "Arrêter le mining" : "Démarrer le mining"
     hoverEnabled: true
+
+    onClicked: {
+        if (BlockchainAPI.mining)  // Changé ici
+            BlockchainAPI.stopMining()
+        else
+            BlockchainAPI.startMining()
+    }
+
 
     background: Rectangle {
         radius: Theme.radius
         gradient: Gradient {
             orientation: Gradient.Horizontal
-            GradientStop { position: 0.0; color: "#065f46" }
-            GradientStop { position: 1.0; color: "#064e3b" }
+            GradientStop { position: 0.0; color: BlockchainAPI.mining ? "#92400e" : "#065f46" }  // Changé ici
+            GradientStop { position: 1.0; color: BlockchainAPI.mining ? "#7c2d12" : "#064e3b" }  // Changé ici
         }
         border.color: Theme.accentColor
         border.width: 1
         opacity: root.hovered ? 0.9 : 1.0
 
-        Behavior on opacity {
-            NumberAnimation { duration: Theme.animationDuration }
-        }
-
-        // Animation de pulsation quand mining actif
         SequentialAnimation on opacity {
-            running: root.isMining
+            running: BlockchainAPI.mining  // Changé ici
             loops: Animation.Infinite
-            NumberAnimation { to: 0.7; duration: 1000 }
-            NumberAnimation { to: 1.0; duration: 1000 }
+            NumberAnimation { to: 0.7; duration: 900 }
+            NumberAnimation { to: 1.0; duration: 900 }
         }
     }
 
@@ -40,5 +42,6 @@ Button {
         font.weight: Font.Medium
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
+        wrapMode: Text.NoWrap
     }
 }

@@ -5,6 +5,9 @@ import Qt5Compat.GraphicalEffects
 import "components"
 import "styles"
 
+// Import pour le clipboard
+import QtQuick.Window 2.15
+
 ApplicationWindow {
     id: window
     visible: true
@@ -12,15 +15,25 @@ ApplicationWindow {
     minimumWidth: 800; minimumHeight: 600
     title: qsTr("Skibidi Coin")
     color: Theme.backgroundColor
-    readonly property bool backendReady: (typeof backend !== "undefined" && backend !== null)
 
+    // NOTE: BlockchainAPI est fourni par C++ via contextProperty("BlockchainAPI", &facade)
 
-    // NOTE: backend est fourni par C++ via contextProperty("backend", &backend)
+    // TextEdit invisible pour le clipboard
+    TextEdit {
+        id: clipboardHelper
+        visible: false
+    }
 
     property alias toastVisible: toast.visible
     function showInfo(msg) {
         toast.text = msg
         toast.open()
+    }
+    
+    function copyToClipboard(text) {
+        clipboardHelper.text = text
+        clipboardHelper.selectAll()
+        clipboardHelper.copy()
     }
 
     Popup {
@@ -45,21 +58,15 @@ ApplicationWindow {
     }
 
     Connections {
-        target: backendReady ? backend : null
+        target: BlockchainAPI
 
-        function onTransactionSent(success, message) {
-            if (success) showInfo("Transaction envoyée: " + message + " SKBC")
-            else showInfo("Échec de l’envoi: " + message)
+        function onBlockCountChanged() {
+            showInfo("Nouveau bloc ! Total: " + BlockchainAPI.blockCount)
         }
 
-        function onBlockMined(reward) {
-            showInfo("Bloc miné ! +" + reward + " SKBC")
+        function onMiningChanged() {
+            showInfo(BlockchainAPI.mining ? "Mining démarré" : "Mining arrêté")
         }
-
-        function onAddressGenerated(address) {
-            showInfo("Adresse: " + address)
-        }
-
     }
 
     RowLayout {
@@ -88,34 +95,28 @@ ApplicationWindow {
 
                 StatsItem {
                     iconSource: "qrc:/icons/miners.svg"
-                    label: "Mineurs"
-                    value: backendReady ? String(backend.mineurs) : "0"
-                    Layout.fillWidth: true
-                }
-                StatsItem {
-                    iconSource: "qrc:/icons/hashrate.svg"
-                    label: "Hashrate"
-                    value: backendReady ? backend.hashrate.toFixed(2) + " MH/s" : "0.00 MH/s"
+                    label: "Mining"
+                    value: BlockchainAPI.mining ? "Actif" : "Inactif"
                     Layout.fillWidth: true
                 }
                 StatsItem {
                     iconSource: "qrc:/icons/block.svg"
-                    label: "Bloc"
-                    value: "#" + (backendReady ? String(backend.blockCount) : "0")
+                    label: "Blocs"
+                    value: "#" + String(BlockchainAPI.blockCount)
                     Layout.fillWidth: true
                 }
                 StatsItem {
                     iconSource: "qrc:/icons/tps.svg"
-                    label: "TPS"
-                    value: backendReady ? backend.tps.toFixed(2) : "0.00"
+                    label: "Balance"
+                    value: BlockchainAPI.balance.toFixed(2) + " SKBC"
                     Layout.fillWidth: true
                 }
 
                 Item { Layout.fillHeight: true }
 
-                // Indicateur mining (optionnel)
+                // Indicateur mining
                 BusyIndicator {
-                    running: backend.isMining
+                    running: BlockchainAPI.mining
                     visible: running
                     Layout.alignment: Qt.AlignHCenter
                 }
@@ -163,13 +164,8 @@ ApplicationWindow {
                         }
                         Label {
                             Layout.alignment: Qt.AlignHCenter
-                            text: backendReady ? backend.balance.toLocaleString(Qt.locale(), 'f', 2) : "0.00"
+                            text: BlockchainAPI.balance.toLocaleString(Qt.locale(), 'f', 2)
                             font.pixelSize: 48; font.weight: Font.Bold; color: Theme.textColor
-                        }
-                        Label {
-                            Layout.alignment: Qt.AlignHCenter
-                            text: "Spendable: " + (backendReady ? backend.spendableBalance.toLocaleString(Qt.locale(), 'f', 2) : "0.00") + " SKBC"
-                            font.pixelSize: 12; color: Theme.secondaryTextColor
                         }
                         Label {
                             Layout.alignment: Qt.AlignHCenter
@@ -178,81 +174,212 @@ ApplicationWindow {
                         }
                     }
 
-                    // Mining
+                    // Mining Button
                     MiningButton {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 50
-                        isMining: backendReady && backend.isMining
-                        text: isMining ? "Arrêter le mining" : "Démarrer le mining"
-                        onClicked: if (backendReady) backend.setIsMining(!backend.isMining)
                     }
 
-                    // Mon adresse + copier
-                    RowLayout {
+                    // Info mining
+                    Label {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: BlockchainAPI.mining ? "Mining en cours..." : "Cliquez pour démarrer le mining"
+                        font.pixelSize: 12
+                        color: Theme.secondaryTextColor
+                    }
+
+                    // Public Key avec bouton copier
+                    ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 10
-                        TextField {
-                            id: myAddr
-                            Layout.fillWidth: true
-                            readOnly: true
-                            text: backendReady ? backend.myAddress : ""
-                            placeholderText: "Mon adresse"
-                            selectByMouse: true
+                        spacing: 8
+
+                        Label {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: "Ma clé publique"
+                            font.pixelSize: 12
+                            color: Theme.secondaryTextColor
                         }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 10
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 40
+                                color: Theme.backgroundColor
+                                radius: 8
+                                border.color: Theme.accentColor
+                                border.width: 1
+
+                                ScrollView {
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    clip: true
+
+                                    Text {
+                                        text: BlockchainAPI.publicKey
+                                        color: Theme.textColor
+                                        font.pixelSize: 10
+                                        font.family: "monospace"
+                                        wrapMode: Text.WrapAnywhere
+                                        width: parent.width
+                                    }
+                                }
+                            }
+
+                            Button {
+                                text: "📋"
+                                font.pixelSize: 16
+                                width: 40
+                                height: 40
+                                onClicked: {
+                                    copyToClipboard(BlockchainAPI.publicKey)
+                                    showInfo("Clé publique copiée")
+                                }
+                                
+                                background: Rectangle {
+                                    radius: 8
+                                    color: parent.hovered ? Theme.accentColor : Theme.backgroundColor
+                                    border.color: Theme.accentColor
+                                    border.width: 1
+                                }
+                                
+                                contentItem: Text {
+                                    text: parent.text
+                                    color: parent.hovered ? Theme.backgroundColor : Theme.textColor
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+                        }
+                    }
+
+                    // Section Envoyer Transaction
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 12
+
+                        Label {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: "Envoyer Transaction"
+                            font.pixelSize: 14
+                            font.weight: Font.Medium
+                            color: Theme.textColor
+                        }
+
+                        // Champ destinataire
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 4
+
+                            Label {
+                                text: "Destinataire (clé publique)"
+                                font.pixelSize: 11
+                                color: Theme.secondaryTextColor
+                            }
+
+                            TextField {
+                                id: destinataireField
+                                Layout.fillWidth: true
+                                placeholderText: "Entrez la clé publique du destinataire..."
+                                font.pixelSize: 10
+                                font.family: "monospace"
+                                selectByMouse: true
+                                
+                                background: Rectangle {
+                                    radius: 8
+                                    color: Theme.backgroundColor
+                                    border.color: Theme.accentColor
+                                    border.width: 1
+                                }
+                            }
+                        }
+
+                        // Champ montant
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 4
+
+                            Label {
+                                text: "Montant (SKBC)"
+                                font.pixelSize: 11
+                                color: Theme.secondaryTextColor
+                            }
+
+                            TextField {
+                                id: montantField
+                                Layout.fillWidth: true
+                                placeholderText: "0.00"
+                                validator: DoubleValidator {
+                                    bottom: 0.01
+                                    decimals: 2
+                                    notation: DoubleValidator.StandardNotation
+                                }
+                                font.pixelSize: 12
+                                selectByMouse: true
+                                
+                                background: Rectangle {
+                                    radius: 8
+                                    color: Theme.backgroundColor
+                                    border.color: Theme.accentColor
+                                    border.width: 1
+                                }
+                            }
+                        }
+
+                        // Bouton Send
                         Button {
-                            text: "Copier"
-                            enabled: backendReady && myAddr.text.length > 0
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 45
+                            text: "Send Transaction"
+                            enabled: destinataireField.text.length > 0 && 
+                                    montantField.text.length > 0 && 
+                                    parseFloat(montantField.text) > 0 &&
+                                    parseFloat(montantField.text) <= BlockchainAPI.balance
+                            
                             onClicked: {
-                                Qt.application.clipboard.setText(myAddr.text)
-                                showInfo("Adresse copiée")
+                                var amount = parseFloat(montantField.text)
+                                var recipient = destinataireField.text.trim()
+                                
+                                // Ici vous ajouterez votre logique d'envoi
+                                BlockchainAPI.sendTransaction(recipient, amount)
+                                console.log("Sending", amount, "SKBC to", recipient)
+                                showInfo("Transaction créée: " + amount + " SKBC vers " + recipient.substring(0, 8) + "...")
+                                
+                                // Reset des champs après envoi
+                                destinataireField.text = ""
+                                montantField.text = ""
+                            }
+                            
+                            background: Rectangle {
+                                radius: 8
+                                color: parent.enabled ? (parent.hovered ? "#065f46" : "#059669") : "#6b7280"
+                                border.color: parent.enabled ? "#10b981" : "#9ca3af"
+                                border.width: 1
+                            }
+                            
+                            contentItem: Text {
+                                text: parent.text
+                                color: parent.enabled ? "white" : "#d1d5db"
+                                font.pixelSize: 14
+                                font.weight: Font.Medium
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
                             }
                         }
-                    }
 
-                    // Adresse destinataire (ID visible pour le bouton ci-dessous)
-                    TextField {
-                        id: dest
-                        Layout.fillWidth: true
-                        placeholderText: "Adresse (pubkey) du destinataire"
-                        selectByMouse: true
-                    }
-
-                    // Send / Receive
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 20
-
-                        ActionButton {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 50
-                            text: "Send 1.00 SKBC"
-                            isPrimary: true
-                            enabled: backendReady
-                                && backend.spendableBalance >= 1.01
-                                && dest.text.length > 0
-                                && backend.isAddressValid(dest.text)
-                            onClicked: {
-                                if (!backendReady) return
-                                backend.sendTransaction(1.0, dest.text)
-                            }
-                        }
-
-                        ActionButton {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 50
-                            text: "Receive"
-                            isPrimary: false
-                            onClicked: {
-                                if (!backendReady) return
-                                backend.receiveCoins()
-                                showInfo("Votre adresse est affichée ci-dessus")
-                            }
+                        // Info solde disponible
+                        Label {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: "Solde disponible: " + BlockchainAPI.balance.toFixed(2) + " SKBC"
+                            font.pixelSize: 10
+                            color: Theme.secondaryTextColor
                         }
                     }
                 }
             }
         }
-
 
         // --- Panel droit (Historique) ---
         Rectangle {
@@ -267,7 +394,7 @@ ApplicationWindow {
                 spacing: 15
 
                 Label {
-                    text: "Transaction history"
+                    text: "Transaction History"
                     font.pixelSize: 18; font.weight: Font.Medium
                     color: Theme.textColor
                 }
@@ -279,16 +406,47 @@ ApplicationWindow {
 
                     ListView {
                         id: transactionList
-                        model: backendReady ? backend.txModel : null
+                        model: BlockchainAPI.transactionCount
                         spacing: 10
 
-                        delegate: TransactionItem {
+                        delegate: Rectangle {
                             width: transactionList.width
-                            txId: model.txId
-                            amount: (model.isReceive ? "+" : "-") + Number(model.amount).toFixed(2)
-                            currency: model.currency
-                            isReceive: model.isReceive
-                            status: model.status
+                            height: 80
+                            color: Theme.backgroundColor
+                            radius: 8
+                            border.color: Theme.accentColor
+                            border.width: 1
+
+                            Column {
+                                anchors.left: parent.left
+                                anchors.leftMargin: 15
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 4
+
+                                Text {
+                                    text: BlockchainAPI.getTransactionAt(index)
+                                    color: Theme.textColor
+                                    font.pixelSize: 11
+                                    font.weight: Font.Medium
+                                    wrapMode: Text.WordWrap
+                                    width: parent.parent.width - 30
+                                }
+
+                                Text {
+                                    text: "Confirmée"
+                                    color: Theme.secondaryTextColor
+                                    font.pixelSize: 9
+                                }
+                            }
+                        }
+
+                        // Message si aucune transaction - maintenant à l'intérieur de ListView
+                        Label {
+                            anchors.centerIn: parent
+                            text: "Aucune transaction"
+                            color: Theme.secondaryTextColor
+                            font.pixelSize: 14
+                            visible: transactionList.count === 0
                         }
                     }
                 }

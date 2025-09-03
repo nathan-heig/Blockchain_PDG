@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 namespace crypto {
 
@@ -97,7 +98,6 @@ namespace crypto {
 
         // Cleanup
         EVP_MD_CTX_free(ctx);
-        EVP_PKEY_free(pkey);
 
         // Resize vector to actual size of signature
         signature.resize(signatureLen);
@@ -118,7 +118,7 @@ namespace crypto {
             throw std::runtime_error("Failed to create BIO");
         }
 
-         if (PEM_write_bio_PUBKEY(bio, pkey) != 1) {
+        if (PEM_write_bio_PUBKEY(bio, pkey) != 1) {
             BIO_free(bio);
             throw std::runtime_error("Failed to write public key");
         }
@@ -128,6 +128,22 @@ namespace crypto {
         size_t pubKeyLen = BIO_get_mem_data(bio, &pubKey);
         std::string pubKeyStr(pubKey, pubKeyLen);
 
+        // Remove PEM headers and footers
+        std::string beginMarker = "-----BEGIN PUBLIC KEY-----";
+        std::string endMarker = "-----END PUBLIC KEY-----";
+        
+        size_t start = pubKeyStr.find(beginMarker);
+        if (start != std::string::npos) {
+            start += beginMarker.length();
+            size_t end = pubKeyStr.find(endMarker);
+            if (end != std::string::npos) {
+                pubKeyStr = pubKeyStr.substr(start, end - start);
+                // Remove newlines and whitespace
+                pubKeyStr.erase(std::remove_if(pubKeyStr.begin(), pubKeyStr.end(), 
+                    [](char c) { return std::isspace(c); }), pubKeyStr.end());
+            }
+        }
+
         // Cleanup
         BIO_free(bio);
 
@@ -135,8 +151,11 @@ namespace crypto {
     }
 
     bool verifySignature(const std::string& data, const Signature& signature, const PubKey& pubKey) {
+
+        std::string keyPem = "-----BEGIN PUBLIC KEY-----\n" + pubKey + "\n-----END PUBLIC KEY-----";
+
         // Load public key
-        BIO* bio = BIO_new_mem_buf(pubKey.data(), pubKey.size());
+        BIO* bio = BIO_new_mem_buf(keyPem.data(), keyPem.size());
         EVP_PKEY* pkey = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
         BIO_free(bio);
         if (!pkey) {

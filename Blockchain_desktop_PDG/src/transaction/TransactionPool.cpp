@@ -15,7 +15,7 @@ const Transaction Transaction::create(EVP_PKEY* fromPrivKey, const PubKey& toPub
     double totalBalance = 0.0;
 
     // Utiliser find() plutôt que at()
-    const auto allUtxos = blockchain.getUTXOsSnapshot();
+    const auto allUtxos = blockchain.getUTXOs();
     auto it = allUtxos.find(fromPubKey);
     if (it == allUtxos.end() || it->second.empty()) {
         throw std::runtime_error("No UTXOs available for sender");
@@ -47,7 +47,7 @@ const Transaction Transaction::create(EVP_PKEY* fromPrivKey, const PubKey& toPub
 
 bool TransactionPool::addTransaction(const Transaction& tx){
     try {
-        auto utxoSnap = blockchain_.getUTXOsSnapshot();
+        auto utxoSnap = blockchain_.getUTXOs();
         if (!tx.verify(blockchain_, utxoSnap)) {
             return false;
         }

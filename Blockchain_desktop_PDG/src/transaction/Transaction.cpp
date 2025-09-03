@@ -94,7 +94,7 @@ const Transaction Transaction::createWithFromPub(EVP_PKEY* fromPrivKey,
     Inputs inputs;
     double totalBalance = 0.0;
 
-    const auto allUtxos = blockchain.getUTXOsSnapshot();
+    const auto allUtxos = blockchain.getUTXOs();
     auto it = allUtxos.find(fromPubKey);
     if (it == allUtxos.end() || it->second.empty()) {
         throw std::runtime_error("No UTXOs available for sender");
@@ -120,4 +120,36 @@ const Transaction Transaction::createWithFromPub(EVP_PKEY* fromPrivKey,
     Transaction tx(inputs, outputs);
     tx.sign(fromPrivKey);
     return tx;
+}
+
+
+std::string Transaction::getTransactionWalletStr(const PubKey& pubKey, const Blockchain& blockchain) const{
+    double amount = 0.0;
+
+    for (const auto& input : inputs) {
+        if (input.getOutput(blockchain).getPubKey() == pubKey) {
+            amount -= input.getOutput(blockchain).getValue();
+        }
+    }
+
+    for (const auto& output : outputs) {
+        if (output.getPubKey() == pubKey) {
+            amount += output.getValue();
+        }
+    }
+
+    // Helper lambda pour formater les pubKeys
+    auto formatPubKey = [](const std::string& key) -> std::string {
+        if (key.length() <= 16) return key;
+        return key.substr(0, 8) + "..." + key.substr(key.length() - 8);
+    };
+
+    if (amount < 0) {
+        return "de " + formatPubKey(pubKey) + "\nà " + formatPubKey(outputs[0].getPubKey()) + "\n" + std::to_string(amount);
+    } else {
+        if (inputs.size() > 0) {
+            return "de " + formatPubKey(inputs[0].getOutput(blockchain).getPubKey()) + "\nà " + formatPubKey(pubKey) + "\n" + std::to_string(amount);
+        }
+        return "de Mining reward\nà " + formatPubKey(pubKey) + "\n" + std::to_string(amount);
+    }
 }

@@ -26,10 +26,6 @@ public:
 
     const std::set<Transaction>& getTransactions() const{return transactions_;}
 
-    std::set<OutputReference> getSpentOutputsSnapshot() const {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return spentOutputs_; // copie
-    }
 };
 
 #endif // TRANSACTION_POOL_HPP

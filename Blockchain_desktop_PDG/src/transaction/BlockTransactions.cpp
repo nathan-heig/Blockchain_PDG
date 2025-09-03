@@ -7,9 +7,10 @@ BlockTransactions::BlockTransactions(const Blockchain& blockchain, const Transac
     txs.reserve(MAX_TRANSACTIONS + 1);
 
     size_t count = 0;
+    
     for (const auto& tx : pool.getTransactions()) {
         if (count >= MAX_TRANSACTIONS) break;
-        // TODO: vérifier via interface publique quand disponible
+
         totalFees += tx.getFee(blockchain);
         txs.push_back(tx);
         ++count;

@@ -15,9 +15,9 @@ struct Target{
     uint8_t max;
 
     static Target createInitialTarget() {
-        return Target{3, 128};
+        return Target{2, 128};
     }
-    inline static const uint8_t sizePerStep = 8;
+    inline static const uint8_t sizePerStep = 32;
 
     void augmenterDifficulte(int step) {
         if (max <= step * sizePerStep) {
@@ -82,7 +82,7 @@ public:
     Block() = default; // pour désérialisation
 
     /*Crée un nouveau bloc à partir de la blockchain et de la clé publique du mineur*/
-    static Block createBlock(const Blockchain& blockchain, const PubKey& minerPubKey);
+    static Block createBlock(const Blockchain& blockchain, const PubKey& minerPubKey, const std::atomic<bool>* continueFlag);
 
     // Operators
     const Transaction& operator[](const size_t i) const {return transactions[i];}

@@ -59,7 +59,7 @@ const Target Blockchain::getTargetAt(uint32_t index) const {
 
 
 bool Blockchain::addBlock(const Block& block) {
-    std::lock_guard<std::mutex> lk(mtx_);
+    //std::lock_guard<std::mutex> lk(mtx_);
     if (!block.verify(*this, utxos)) {
         return false;
     }
@@ -106,11 +106,6 @@ double Blockchain::getWalletBalance(const PubKey& pubKey) const{
     return balance;
 }
 
-UTXOs Blockchain::getUTXOsSnapshot() const {
-    std::lock_guard<std::mutex> lk(mtx_);
-    return utxos; // copie
-}
-
 bool Blockchain::addAndBroadCastTransaction(const Transaction& tx) {
 
     if (transactionPool.addTransaction(tx)) {
@@ -122,7 +117,8 @@ bool Blockchain::addAndBroadCastTransaction(const Transaction& tx) {
 
 void Blockchain::doMine(const PubKey& minerPubKey) {
 
-    isMining = true;
+    isMining_.store(true);
+
 
     // Lancer le mining dans un thread séparé pour ne pas bloquer
     std::thread miningThread([this, minerPubKey]() {
@@ -130,10 +126,15 @@ void Blockchain::doMine(const PubKey& minerPubKey) {
         std::cout << "Mining started in background thread." << std::endl;
         const double alpha = 0.3;
 
-        while(isMining.load()) {
+        while(isMining_.load()) {
             auto start = std::chrono::steady_clock::now();
             // Créer un nouveau bloc avec les transactions en attente
-            Block newBlock = Block::createBlock(*this, minerPubKey);
+
+            //std::cout << "Mining new block..." << std::endl;
+
+            Block newBlock = Block::createBlock(*this, minerPubKey, &isMining_);
+
+            //std::cout << "Mining new block at index " << newBlock.getIndex() << " with target " << (int)newBlock.getTarget().value << std::endl;
             auto end = std::chrono::steady_clock::now();
 
             bool accepted = addBlock(newBlock);
@@ -157,11 +158,6 @@ void Blockchain::doMine(const PubKey& minerPubKey) {
                     lastTPS_.store(ema);
                 }
 
-                // callback ui (reward)
-                double reward = BlockTransactions::calculateMinerReward(*this, newBlock);
-                if (onBlockMined) {
-                    try { onBlockMined(reward); } catch(...) {}
-                }
                 // broadcast réseau
                 network.buildFrameAndbroadcast(MsgType::BROADCAST_BLOCK, newBlock);
             }
