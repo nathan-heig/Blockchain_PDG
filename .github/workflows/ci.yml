@@ -191,7 +191,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          cmake ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} `
+          cmake "${{ steps.vcpkg.outputs.vcpkg-cmake-config }}" `
             -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja `
             -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} `
             -DCMAKE_PREFIX_PATH="$env:QTDIR" `
