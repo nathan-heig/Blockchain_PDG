@@ -173,18 +173,29 @@ jobs:
         shell: pwsh
 
       # ===== Configure / Build / Test =====
-      - name: Configure (CMake + Ninja)
+      - name: Configure (CMake + Ninja) on Unix
+        if: runner.os != 'Windows'
         shell: bash
         run: |
-            if [ "${{ runner.os }}" = "macOS" ]; then
-              EXTRA_CMAKE_ARGS="-DCMAKE_OSX_ARCHITECTURES=x86_64"
-            fi
-            cmake ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} \
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            EXTRA_CMAKE_ARGS="-DCMAKE_OSX_ARCHITECTURES=x86_64"
+          fi
+          cmake ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} \
             -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} \
             -DCMAKE_PREFIX_PATH="$QTDIR" \
             -DUSE_SYSTEM_MINIUPNPC=OFF \
             $EXTRA_CMAKE_ARGS
+
+      - name: Configure (CMake + Ninja) on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cmake ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} `
+            -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja `
+            -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} `
+            -DCMAKE_PREFIX_PATH="$env:QTDIR" `
+            -DUSE_SYSTEM_MINIUPNPC=OFF
 
       - name: Build
         run: cmake --build ${{ env.BUILD_DIR }} --parallel
