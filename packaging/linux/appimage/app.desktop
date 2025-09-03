@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Blockchain PDG
+Comment=Application Blockchain PDG (Qt)
+Exec=appBlockchain_desktop_PDG
+Icon=appBlockchain_desktop_PDG
+Categories=Utility;Network;Education;
+Terminal=false
+StartupNotify=true
