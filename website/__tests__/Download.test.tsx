@@ -16,26 +16,19 @@ describe("Download page", () => {
   });
 
   // ===== Téléchargements : gardés en commentaires tant que les fichiers ne sont pas prêts =====
-  // test("Windows: le lien de téléchargement pointe vers un .exe", () => {
-  //   render(<DownloadPage />);
-  //   const card = screen.getByRole("heading", { level: 3, name: /windows/i }).closest("div")!;
-  //   const link = card.querySelector('a[href]');
-  //   expect(link).toHaveAttribute("href", expect.stringMatching(/\\.exe$/i));
-  // });
+   test("macOS: le lien de téléchargement pointe vers un .zip", () => {
+     render(<DownloadPage />);
+     const card = screen.getByRole("heading", { level: 3, name: /macos/i }).closest("div")!;
+     const link = card.querySelector('a[href]');
+     expect(link!.getAttribute("href")).toMatch(/\.zip$/i);
+   });
 
-  // test("macOS: le lien de téléchargement pointe vers un .dmg", () => {
-  //   render(<DownloadPage />);
-  //   const card = screen.getByRole("heading", { level: 3, name: /macos/i }).closest("div")!;
-  //   const link = card.querySelector('a[href]');
-  //   expect(link).toHaveAttribute("href", expect.stringMatching(/\\.dmg$/i));
-  // });
-
-  // test("Linux: le lien de téléchargement pointe vers un .AppImage", () => {
-  //   render(<DownloadPage />);
-  //   const card = screen.getByRole("heading", { level: 3, name: /linux/i }).closest("div")!;
-  //   const link = card.querySelector('a[href]');
-  //   expect(link).toHaveAttribute("href", expect.stringMatching(/\\.AppImage$/i));
-  // });
+   test("Linux: le lien de téléchargement pointe vers un .AppImage", () => {
+     render(<DownloadPage />);
+     const card = screen.getByRole("heading", { level: 3, name: /linux/i }).closest("div")!;
+     const link = card.querySelector('a[href]');
+     expect(link!.getAttribute("href")).toMatch(/\.AppImage$/i);
+   });
 
   test("lien 'Retour à l’accueil' présent", () => {
     render(<DownloadPage />);

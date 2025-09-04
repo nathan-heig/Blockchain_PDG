@@ -19,33 +19,35 @@ function useOs() {
 export default function DownloadPage() {
   const os = useOs();
 
-  // 👉 Remplace les href par tes vrais fichiers dans /public/downloads
   // 👉 Place des logos dans /public/icons : windows.svg, mac.svg, linux.svg (ou .png)
   const builds = useMemo(
     () => [
       {
-        id: "windows" as const,
-        label: "Windows",
-        desc: "Installateur pour Windows 10/11 (64‑bit).",
-        href: "/downloads/MonApp-Setup-x64.exe",
-        logoSrc: "/icons/windows.png", 
-        badge: "EXE",
-      },
-      {
         id: "mac" as const,
         label: "macOS",
         desc: "Image disque .dmg signée (Apple Silicon & Intel).",
-        href: "/downloads/MonApp.dmg",
+        href: "https://github.com/nathan-heig/Blockchain_PDG/releases/download/1.0/Blockchain_PDG_macOS.zip",
         logoSrc: "/icons/mac.png",
         badge: "DMG",
+        disabled: false,
       },
       {
         id: "linux" as const,
         label: "Linux",
         desc: "AppImage x86_64 (rendu exécutable puis lancer).",
-        href: "/downloads/MonApp-x86_64.AppImage",
+        href: "https://github.com/nathan-heig/Blockchain_PDG/releases/download/1.0/Blockchain_PDG_linux.AppImage",
         logoSrc: "/icons/linux.png",
         badge: "AppImage",
+        disabled: false,
+      },
+      {
+        id: "windows" as const,
+        label: "Windows",
+        desc: "Version Windows en cours de préparation.",
+        // pas de href car désactivée
+        logoSrc: "/icons/windows.png",
+        badge: "EXE",
+        disabled: true,
       },
     ],
     []
@@ -74,12 +76,20 @@ export default function DownloadPage() {
           return (
             <div
               key={b.id}
-              className={`relative rounded-2xl border border-white/10 bg-white/5 p-6 ${
-                recommended ? "ring-1 ring-emerald-400/60" : ""
-              }`}
+              className={`relative rounded-2xl border border-white/10 bg-white/5 p-6 overflow-hidden ${
+                recommended && !b.disabled ? "ring-1 ring-emerald-400/60" : ""
+              } ${b.disabled ? "opacity-70" : ""}`}
+              aria-disabled={b.disabled || undefined}
             >
-              {/* Badge recommandé */}
-              {recommended && (
+              {/* Ruban "Coming soon" pour Windows désactivé */}
+              {b.disabled && (
+                <div className="absolute top-0 left-0 right-0 bg-rose-600/90 text-white text-xs font-semibold text-center py-1">
+                  Coming soon
+                </div>
+              )}
+
+              {/* Badge recommandé (pas si désactivé) */}
+              {recommended && !b.disabled && (
                 <span className="absolute top-3 right-3 text-[11px] px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
                   Recommandé
                 </span>
@@ -89,27 +99,37 @@ export default function DownloadPage() {
               <h3 className="text-lg font-semibold text-center">{b.label}</h3>
               <div className="text-xs text-slate-400 text-center">{b.badge}</div>
 
-              {/* Gros logo cliquable */}
-              <a
-                href={b.href}
-                className="mt-4 block rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition grid place-items-center aspect-square"
-                aria-label={`Télécharger ${b.label}`}
-              >
-                {/* Essaie d'afficher l'image. Si elle n'existe pas encore, on montre l'icône fallback. */}
-                <div className="relative w-28 h-28 sm:w-32 sm:h-32">
-                  {/* Image locale (svg/png) */}
-                  <Image
-                    src={b.logoSrc}
-                    alt={b.label}
-                    fill
-                    className="object-contain"
-                    onError={(e) => {
-                      // Cache l'image si elle n'existe pas, le fallback sera visible dessous
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
+              {/* Gros logo cliquable / non cliquable (mise en page conservée) */}
+              {b.disabled ? (
+                <div
+                  className="mt-4 block rounded-2xl border border-white/10 bg-white/5 transition grid place-items-center aspect-square cursor-not-allowed"
+                  role="button"
+                  aria-label={`${b.label} indisponible`}
+                  title="Indisponible pour le moment"
+                >
+                  <div className="relative w-28 h-28 sm:w-32 sm:h-32">
+                    <Image src={b.logoSrc} alt={b.label} fill className="object-contain" />
+                  </div>
                 </div>
-              </a>
+              ) : (
+                <a
+                  href={b.href}
+                  className="mt-4 block rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition grid place-items-center aspect-square"
+                  aria-label={`Télécharger ${b.label}`}
+                >
+                  <div className="relative w-28 h-28 sm:w-32 sm:h-32">
+                    <Image
+                      src={b.logoSrc}
+                      alt={b.label}
+                      fill
+                      className="object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  </div>
+                </a>
+              )}
 
               {/* Description */}
               <p className="text-slate-300 mt-4 text-sm leading-relaxed text-center">
