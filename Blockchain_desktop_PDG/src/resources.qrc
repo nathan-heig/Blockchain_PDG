@@ -7,5 +7,10 @@
         <file alias="components/TransactionItem.qml">../qml/components/TransactionItem.qml</file>
         <file alias="styles/Theme.qml">../qml/styles/Theme.qml</file>
         <file alias="styles/qmldir">../qml/styles/qmldir</file>
+        <file alias="icons/miners.svg">../qml/icons/miners.svg</file>
+        <file alias="icons/block.svg">../qml/icons/block.svg</file>
+        <file alias="icons/tps.svg">../qml/icons/tps.svg</file>
+        <file alias="icons/hashrate.svg">../qml/icons/hashrate.svg</file>
+        <file alias="icons/speed.svg">../qml/icons/speed.svg</file>
     </qresource>
 </RCC>

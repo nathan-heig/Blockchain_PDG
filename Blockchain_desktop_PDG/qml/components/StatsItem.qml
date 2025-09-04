@@ -51,6 +51,8 @@ Item {
                 text: root.label
                 font.pixelSize: 12
                 color: Theme.secondaryTextColor
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignRight
             }
 
             Label {
@@ -58,6 +60,8 @@ Item {
                 font.pixelSize: 16
                 font.weight: Font.Medium
                 color: Theme.textColor
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignRight
             }
         }
     }

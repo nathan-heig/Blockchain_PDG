@@ -31,5 +31,11 @@ int main(int argc, char *argv[])
     if (engine.rootObjects().isEmpty())
         return -1;
 
+    QObject::connect(&app, &QGuiApplication::aboutToQuit, [&]() {
+        blockchain.stopMining();
+        blockchain.getNetwork().stop();
+        EVP_PKEY_free(privKey);
+    });
+
     return app.exec();
 }

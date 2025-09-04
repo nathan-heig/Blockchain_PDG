@@ -380,14 +380,6 @@ ApplicationWindow {
                                 verticalAlignment: Text.AlignVCenter
                             }
                         }
-
-                        // Info solde disponible
-                        Label {
-                            Layout.alignment: Qt.AlignHCenter
-                            text: "Solde disponible: " + BlockchainAPI.balance.toFixed(2) + " SKBC"
-                            font.pixelSize: 10
-                            color: Theme.secondaryTextColor
-                        }
                     }
                 }
             }
