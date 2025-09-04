@@ -75,10 +75,16 @@ public:
         }
     }
     Q_INVOKABLE double getLastHashrateMHs() const {
-        return m_chain.getLastHashrateMHs();
+        if (m_chain.isMining()) {
+            return m_chain.getLastHashrateMHs();
+        }
+        return 0.0;
     }
     Q_INVOKABLE double getLastTPS() const {
-        return m_chain.getLastTPS();
+        if (m_chain.isMining()) {
+            return m_chain.getLastTPS();
+        }
+        return 0.0;
     }
 
     QString getPublicKeyString() const {
