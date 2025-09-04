@@ -36,21 +36,16 @@ public:
             }, Qt::QueuedConnection);
         });
 
-    // Signal périodique toutes les 5 secondes
-    m_periodicTimer->setInterval(5000);
-    connect(m_periodicTimer, &QTimer::timeout, this, &BlockchainFacade::periodicUpdate);
-    m_periodicTimer->start();
+        // Signal périodique toutes les 5 secondes
+        m_periodicTimer->setInterval(5000);
+        connect(m_periodicTimer, &QTimer::timeout, this, &BlockchainFacade::periodicUpdate);
+        m_periodicTimer->start();
 
-    m_chain.getNetwork().start();
-    m_chain.getNetwork().connect(PeerInfo("77.56.233.210", 8187));
+        m_chain.getNetwork().start();
+        m_chain.getNetwork().connect(PeerInfo("77.56.233.210", 8187));
 
-    while (!m_chain.getNetwork().isSynchronized()) {
-        QCoreApplication::processEvents();
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-
-
-
+        m_chain.getNetwork().waitSync.lock();
+        m_chain.getNetwork().waitSync.unlock();
     }
 
     Q_INVOKABLE void startMining() {
