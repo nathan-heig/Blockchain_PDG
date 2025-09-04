@@ -131,7 +131,22 @@ void Blockchain::doMine(const PubKey& minerPubKey) {
             // Créer un nouveau bloc avec les transactions en attente
             Block newBlock = Block::createBlock(*this, minerPubKey, &isMining_, &lastHashrateMHs);
 
-            if (addBlock(newBlock)) {
+            //std::cout << "Mining new block at index " << newBlock.getIndex() << " with target " << (int)newBlock.getTarget().value << std::endl;
+            auto end = std::chrono::steady_clock::now();
+
+            bool accepted = addBlock(newBlock);
+
+            if (accepted) {
+
+                // TPS EMA (recalcule tps immédiat sur fenêtre)
+                {
+                    std::lock_guard<std::mutex> lk(mtx_);
+                    double tps_inst = computeTPS_NoLock(10);
+                    double prev = lastTPS_;
+                    double ema = alpha * tps_inst + (1.0 - alpha) * prev;
+                    lastTPS_ = ema;
+                }
+
                 // broadcast réseau
                 network.buildFrameAndbroadcast(MsgType::BROADCAST_BLOCK, newBlock);
             }
