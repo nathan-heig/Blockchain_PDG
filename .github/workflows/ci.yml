@@ -198,11 +198,9 @@ jobs:
             -DUSE_SYSTEM_MINIUPNPC=OFF
 
       - name: Build
-        shell: ${{ runner.os == 'Windows' && 'pwsh' || 'bash' }}
         run: cmake --build ${{ env.BUILD_DIR }} --parallel
 
       - name: CTest
-        shell: ${{ runner.os == 'Windows' && 'pwsh' || 'bash' }}
         run: ctest --test-dir ${{ env.BUILD_DIR }} --output-on-failure
 
       - name: Build AppImage (Linux)
