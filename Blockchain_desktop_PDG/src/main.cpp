@@ -66,8 +66,8 @@ int main(int argc, char *argv[])
 
     static Blockchain blockchain;
 
-    blockchain.getNetwork().start(8186);
-    blockchain.getNetwork().connect(PeerInfo("127.0.0.1", 8185));
+    blockchain.getNetwork().start();
+    blockchain.getNetwork().connect(PeerInfo("77.56.233.210", 8187));
 
     static BlockchainFacade blockchainFacade(blockchain, privKey);
 

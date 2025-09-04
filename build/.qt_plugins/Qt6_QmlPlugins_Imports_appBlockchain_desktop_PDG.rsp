@@ -1,0 +1,9 @@
+-rootPath
+/home/nat/documents/HEIG_VD/Blockchain_PDG/Blockchain_desktop_PDG
+-cmake-output
+-output-file
+/home/nat/documents/HEIG_VD/Blockchain_PDG/build/.qt_plugins/Qt6_QmlPlugins_Imports_appBlockchain_desktop_PDG.cmake
+-importPath
+/home/nat/documents/HEIG_VD/Blockchain_PDG/build
+-importPath
+/usr/lib/x86_64-linux-gnu/qt6/qml

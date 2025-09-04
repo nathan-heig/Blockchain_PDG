@@ -75,6 +75,8 @@ public:
                     setupCallbacks(peer, conn);
                     sendVersion(peer);
                 }
+                std::cout << "Connect to " << peer.getIp() << ":" << peer.getPort()
+                          << (ec ? " failed: " + ec.message() : " succeeded") << std::endl;
             });
     }
 
