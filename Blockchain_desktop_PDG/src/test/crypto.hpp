@@ -16,6 +16,7 @@ using Hash = std::string;
 #include <openssl/bio.h>
 #include <openssl/rsa.h>
 #include <openssl/sha.h>
+#include <openssl/rand.h>
 #include <iomanip>
 #include <string>
 
