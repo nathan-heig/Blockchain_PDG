@@ -44,8 +44,6 @@ public:
         m_chain.getNetwork().start();
         m_chain.getNetwork().connect(PeerInfo("77.56.233.210", 8187));
 
-        m_chain.getNetwork().waitSync.lock();
-        m_chain.getNetwork().waitSync.unlock();
     }
 
     Q_INVOKABLE void startMining() {

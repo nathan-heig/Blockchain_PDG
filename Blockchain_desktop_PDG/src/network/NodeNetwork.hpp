@@ -66,8 +66,9 @@ public:
     bool isRunning() const { return isRunning_; }
 
     void connect(const PeerInfo& peer) {
-        if (! synchronized_)
-            waitSync.lock();
+        if (! synchronized_){
+            waitSync.acquire();
+        }
 
 
         auto conn = std::make_shared<TcpConnection>(io_);
@@ -82,6 +83,11 @@ public:
                 std::cout << "Connect to " << peer.getIp() << ":" << peer.getPort()
                           << (ec ? " failed: " + ec.message() : " succeeded") << std::endl;
             });
+
+        if (! synchronized_){
+            waitSync.acquire();
+            waitSync.release();
+        }
     }
 
     int peerCount() const { return peerCount_.load(); }
@@ -93,8 +99,6 @@ public:
         auto payload = BinaryProtocol::serializeObject(obj);
         buildFrameAndbroadcast(type, payload);
     }
-
-    std::mutex waitSync;
 
 private:
 
@@ -111,10 +115,11 @@ private:
     std::atomic<int> peerCount_{0};
     bool upnpDone_{false};
     bool synchronized_{false};
+    std::binary_semaphore waitSync{1};
 
     void isSynchronized(){
         synchronized_ = true;
-        waitSync.unlock();
+        waitSync.release();
     }
 
     void accept(){
