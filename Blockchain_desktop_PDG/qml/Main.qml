@@ -61,11 +61,11 @@ ApplicationWindow {
         target: BlockchainAPI
 
         function onBlockCountChanged() {
-            showInfo("Nouveau bloc ! Total: " + BlockchainAPI.blockCount)
+            showInfo("New Block ! Total: " + BlockchainAPI.blockCount)
         }
 
         function onMiningChanged() {
-            showInfo(BlockchainAPI.mining ? "Mining démarré" : "Mining arrêté")
+            showInfo(BlockchainAPI.mining ? "Mining started" : "Mining stopped")
         }
     }
 
@@ -96,7 +96,7 @@ ApplicationWindow {
                 StatsItem {
                     iconSource: "qrc:/icons/miners.svg"
                     label: "Mining"
-                    value: BlockchainAPI.mining ? "Actif" : "Inactif"
+                    value: BlockchainAPI.mining ? "Active" : "Inactive"
                     Layout.fillWidth: true
                 }
                 StatsItem {
@@ -159,7 +159,7 @@ ApplicationWindow {
                         color: Theme.accentColor
                         Label {
                             anchors.centerIn: parent
-                            text: "₿"
+                            text: "$"
                             font.pixelSize: 40; font.weight: Font.Bold
                             color: Theme.backgroundColor
                         }
@@ -195,7 +195,7 @@ ApplicationWindow {
                     // Info mining
                     Label {
                         Layout.alignment: Qt.AlignHCenter
-                        text: BlockchainAPI.mining ? "Mining en cours..." : "Cliquez pour démarrer le mining"
+                        text: BlockchainAPI.mining ? "Mining in progress" : "Click to start mining"
                         font.pixelSize: 12
                         color: Theme.secondaryTextColor
                     }
@@ -207,7 +207,7 @@ ApplicationWindow {
 
                         Label {
                             Layout.alignment: Qt.AlignHCenter
-                            text: "Ma clé publique"
+                            text: "My public key"
                             font.pixelSize: 12
                             color: Theme.secondaryTextColor
                         }
@@ -247,7 +247,7 @@ ApplicationWindow {
                                 height: 40
                                 onClicked: {
                                     copyToClipboard(BlockchainAPI.publicKey)
-                                    showInfo("Clé publique copiée")
+                                    showInfo("Public key copied")
                                 }
                                 
                                 background: Rectangle {
@@ -274,7 +274,7 @@ ApplicationWindow {
 
                         Label {
                             Layout.alignment: Qt.AlignHCenter
-                            text: "Envoyer Transaction"
+                            text: "Send Transaction"
                             font.pixelSize: 14
                             font.weight: Font.Medium
                             color: Theme.textColor
@@ -286,7 +286,7 @@ ApplicationWindow {
                             spacing: 4
 
                             Label {
-                                text: "Destinataire (clé publique)"
+                                text: "Destination address (public key)"
                                 font.pixelSize: 11
                                 color: Theme.secondaryTextColor
                             }
@@ -294,7 +294,7 @@ ApplicationWindow {
                             TextField {
                                 id: destinataireField
                                 Layout.fillWidth: true
-                                placeholderText: "Entrez la clé publique du destinataire..."
+                                placeholderText: "Enter the recipient's public key..."
                                 font.pixelSize: 10
                                 font.family: "monospace"
                                 color: Theme.textColor
@@ -316,7 +316,7 @@ ApplicationWindow {
                             spacing: 4
 
                             Label {
-                                text: "Montant (SKBC)"
+                                text: "Amount (SKBC)"
                                 font.pixelSize: 11
                                 color: Theme.secondaryTextColor
                             }
@@ -361,7 +361,7 @@ ApplicationWindow {
                                 // Ici vous ajouterez votre logique d'envoi
                                 BlockchainAPI.sendTransaction(recipient, amount)
                                 console.log("Sending", amount, "SKBC to", recipient)
-                                showInfo("Transaction créée: " + amount + " SKBC vers " + recipient.substring(0, 8) + "...")
+                                showInfo("Transaction created: " + amount + " SKBC to " + recipient.substring(0, 8) + "...")
                                 
                                 // Reset des champs après envoi
                                 destinataireField.text = ""
@@ -448,7 +448,7 @@ ApplicationWindow {
                                 }
 
                                 Text {
-                                    text: "Confirmée"
+                                    text: "Confirmed"
                                     color: Theme.secondaryTextColor
                                     font.pixelSize: 9
                                 }
@@ -458,7 +458,7 @@ ApplicationWindow {
                         // Message si aucune transaction - maintenant à l'intérieur de ListView
                         Label {
                             anchors.centerIn: parent
-                            text: "Aucune transaction"
+                            text: "No transaction"
                             color: Theme.secondaryTextColor
                             font.pixelSize: 14
                             visible: transactionList.count === 0
