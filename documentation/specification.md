@@ -71,12 +71,10 @@ Pour cela, nous mettrons en place:
 
 ### Site web:
 - Landpage design
-- Téléchargement de l'app desktop
-- guide d'installation et documentation (peut-être à double avec github)
-- FAQ trollesque
+- Page d'info
+- Mini-jeu
 - React.js avec TypeScript
-- Téléchargement de l'app desktop
-- guide d'installation et documentation
+- Téléchargement de l'app desktop pour différents OS
 - Hébergé chez Nathan
 
 ### Idées supplémentaires:
