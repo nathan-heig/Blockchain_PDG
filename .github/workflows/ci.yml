@@ -191,11 +191,17 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          if (-not $env:QTDIR) {
+            Write-Error "QTDIR environment variable is not set. Qt installation might have failed."
+            exit 1
+          }
           $vcpkg_cmake_config = "${{ steps.vcpkg.outputs.vcpkg-cmake-config }}".Replace('\', '/')
+          $qt_prefix_path = $env:QTDIR.Replace('\', '/')
+          
           cmake $vcpkg_cmake_config `
             -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja `
             -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} `
-            -DCMAKE_PREFIX_PATH="$($env:QTDIR.Replace('\', '/'))" `
+            -DCMAKE_PREFIX_PATH="$qt_prefix_path" `
             -DUSE_SYSTEM_MINIUPNPC=OFF
 
       - name: Build
