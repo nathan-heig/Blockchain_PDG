@@ -111,6 +111,18 @@ ApplicationWindow {
                     value: BlockchainAPI.balance.toFixed(2) + " SKBC"
                     Layout.fillWidth: true
                 }
+                StatsItem {
+                    iconSource: "qrc:/icons/hashrate.svg" // ajouter l'icône si disponible
+                    label: "Hashrate"
+                    value: (BlockchainAPI.lastHashrate).toFixed(2) + " MH/s"
+                    Layout.fillWidth: true
+                }
+                StatsItem {
+                    iconSource: "qrc:/icons/speed.svg" // ajouter l'icône si disponible
+                    label: "TPS"
+                    value: (BlockchainAPI.lastTPS).toFixed(2)
+                    Layout.fillWidth: true
+                }
 
                 Item { Layout.fillHeight: true }
 

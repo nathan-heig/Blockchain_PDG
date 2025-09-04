@@ -11,10 +11,12 @@ class BlockchainFacade : public QObject {
     Q_PROPERTY(double balance READ walletBalance NOTIFY blockCountChanged)
     Q_PROPERTY(int transactionCount READ getTransactionCount NOTIFY blockCountChanged)
     Q_PROPERTY(QString publicKey READ getPublicKeyString CONSTANT)
+    Q_PROPERTY(double lastHashrate READ getLastHashrateMHs NOTIFY periodicUpdate)
+    Q_PROPERTY(double lastTPS READ getLastTPS NOTIFY periodicUpdate)
 
 public:
     explicit BlockchainFacade(Blockchain& chain, EVP_PKEY* privKey, QObject* parent=nullptr)
-        : QObject(parent), m_chain(chain), walletTransactions(), privKey(privKey)
+    : QObject(parent), m_chain(chain), walletTransactions(), privKey(privKey), m_periodicTimer(new QTimer(this))
     {
 
         minerPubKey = crypto::getPubKey(privKey);
@@ -31,6 +33,11 @@ public:
                 emit blockCountChanged();
             }, Qt::QueuedConnection);
         });
+
+    // Signal périodique toutes les 5 secondes
+    m_periodicTimer->setInterval(5000);
+    connect(m_periodicTimer, &QTimer::timeout, this, &BlockchainFacade::periodicUpdate);
+    m_periodicTimer->start();
     }
 
     Q_INVOKABLE void startMining() {
@@ -61,6 +68,12 @@ public:
             std::cerr << "Error creating transaction: " << e.what() << std::endl;
         }
     }
+    Q_INVOKABLE double getLastHashrateMHs() const {
+        return m_chain.getLastHashrateMHs();
+    }
+    Q_INVOKABLE double getLastTPS() const {
+        return m_chain.getLastTPS();
+    }
 
     QString getPublicKeyString() const {
         return QString::fromStdString(minerPubKey);
@@ -75,10 +88,12 @@ public:
 signals:
     void blockCountChanged();
     void miningChanged();
+    void periodicUpdate(); // émis toutes les 5 secondes
 
 private:
     Blockchain& m_chain;
     EVP_PKEY* privKey; // clé privée du wallet
     PubKey minerPubKey;
     std::vector<Transaction> walletTransactions;
+    QTimer* m_periodicTimer; // timer pour emission périodique
 };

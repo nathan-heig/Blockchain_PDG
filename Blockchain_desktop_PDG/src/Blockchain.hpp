@@ -61,7 +61,9 @@ public:
 
     const UTXOs& getUTXOs() const { return utxos; }
 
-    bool isMining() const { return isMining_.load(); }
+    bool isMining() const { return isMining_; }
+    double getLastHashrateMHs() const { return lastHashrateMHs; }
+    double getLastTPS() const { return lastTPS_; }
 
 
 
