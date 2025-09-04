@@ -177,22 +177,36 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          if [ "${{ runner.os }}" = "macOS" ]; then
-            EXTRA_CMAKE_ARGS="-DCMAKE_OSX_ARCHITECTURES=x86_64"
-          fi
-          cmake ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} \
-            -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja \
-            -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} \
-            -DCMAKE_PREFIX_PATH="$QTDIR" \
-            -DUSE_SYSTEM_MINIUPNPC=OFF \
-            $EXTRA_CMAKE_ARGS
+          # --- Determine Qt prefix path (prefer qmake) ---
+          $qmakeCmd = Get-Command qmake -ErrorAction SilentlyContinue
+          if (-not $qmakeCmd) { Write-Error 'qmake not found in PATH'; exit 1 }
+          $qtBin = Split-Path $qmakeCmd.Source -Parent
+          $qtRoot = Split-Path $qtBin -Parent
+          if (-not (Test-Path $qtRoot)) { Write-Error "Qt root path ($qtRoot) not found"; exit 1 }
+          Write-Host "Detected Qt root: $qtRoot"
 
-      - name: Configure (CMake + Ninja) on Windows
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $qt_path = (Get-Command qmake).Source | Split-Path -Parent | Split-Path
-          if (-not $qt_path -or -not (Test-Path $qt_path)) {
+          # Normalize slashes for CMake (avoid backslash escaping issues)
+          $qtPrefix = $qtRoot -replace '\\','/'
+
+          # --- vcpkg toolchain arguments (construct explicitly instead of using combined string output) ---
+          $repoRoot = "$((Get-Location).Path)" -replace '\\','/'
+          $toolchain = "$repoRoot/vcpkg/scripts/buildsystems/vcpkg.cmake"
+          if (-not (Test-Path $toolchain)) { Write-Error "vcpkg toolchain file not found at $toolchain"; Get-ChildItem -Recurse -Filter vcpkg.cmake -ErrorAction SilentlyContinue | Select-Object -First 5 FullName; exit 1 }
+          if (-not $env:VCPKG_DEFAULT_TRIPLET) { $env:VCPKG_DEFAULT_TRIPLET = 'x64-windows' }
+
+          Write-Host "Using vcpkg toolchain: $toolchain"
+          Write-Host "Triplet: $env:VCPKG_DEFAULT_TRIPLET"
+
+          cmake `
+            -DCMAKE_TOOLCHAIN_FILE=$toolchain `
+            -DVCPKG_TARGET_TRIPLET=$env:VCPKG_DEFAULT_TRIPLET `
+            -DVCPKG_MANIFEST_MODE=OFF `
+            -S Blockchain_desktop_PDG `
+            -B ${{ env.BUILD_DIR }} `
+            -G Ninja `
+            -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} `
+            -DCMAKE_PREFIX_PATH=$qtPrefix `
+            -DUSE_SYSTEM_MINIUPNPC=OFF
             Write-Error "Could not determine Qt path from qmake. Qt installation might have failed."
             exit 1
           }
