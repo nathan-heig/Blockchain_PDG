@@ -36,8 +36,8 @@ public:
             }, Qt::QueuedConnection);
         });
 
-        // Signal périodique toutes les 5 secondes
-        m_periodicTimer->setInterval(5000);
+        // Signal périodique toutes les 3 secondes
+        m_periodicTimer->setInterval(3000);
         connect(m_periodicTimer, &QTimer::timeout, this, &BlockchainFacade::periodicUpdate);
         m_periodicTimer->start();
 
@@ -100,7 +100,7 @@ public:
 signals:
     void blockCountChanged();
     void miningChanged();
-    void periodicUpdate(); // émis toutes les 5 secondes
+    void periodicUpdate(); // émis toutes les 3 secondes
 
 private:
     Blockchain& m_chain;
