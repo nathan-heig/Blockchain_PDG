@@ -297,6 +297,7 @@ ApplicationWindow {
                                 placeholderText: "Entrez la clé publique du destinataire..."
                                 font.pixelSize: 10
                                 font.family: "monospace"
+                                textColor: Theme.textColor
                                 selectByMouse: true
                                 
                                 background: Rectangle {
@@ -329,6 +330,7 @@ ApplicationWindow {
                                     notation: DoubleValidator.StandardNotation
                                 }
                                 font.pixelSize: 12
+                                textColor: Theme.textColor
                                 selectByMouse: true
                                 
                                 background: Rectangle {
