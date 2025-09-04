@@ -191,10 +191,14 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          if (-not $env:QTDIR) {
-            Write-Error "QTDIR environment variable is not set. Qt installation might have failed."
+          $qt_path = (Get-Command qmake).Source | Split-Path -Parent | Split-Path
+          if (-not $qt_path -or -not (Test-Path $qt_path)) {
+            Write-Error "Could not determine Qt path from qmake. Qt installation might have failed."
             exit 1
           }
+          Write-Host "Using Qt from: $qt_path"
+          $env:QTDIR = $qt_path
+
           $vcpkg_cmake_config = "${{ steps.vcpkg.outputs.vcpkg-cmake-config }}".Replace('\', '/')
           $qt_prefix_path = $env:QTDIR.Replace('\', '/')
           
