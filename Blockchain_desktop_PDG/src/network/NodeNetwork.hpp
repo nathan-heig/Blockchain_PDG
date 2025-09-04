@@ -64,6 +64,7 @@ public:
     }
 
     bool isRunning() const { return isRunning_; }
+    bool synchronized() const { return synchronized_; }
 
     void connect(const PeerInfo& peer) {
         auto conn = std::make_shared<TcpConnection>(io_);
@@ -104,6 +105,7 @@ private:
 
     std::atomic<int> peerCount_{0};
     bool upnpDone_{false};
+    bool synchronized_{false};
 
     void accept(){
         auto conn = std::make_shared<TcpConnection>(io_);

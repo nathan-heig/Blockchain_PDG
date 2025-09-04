@@ -39,6 +39,9 @@ void NodeNetwork::handleMessage(const PeerInfo& peer, const std::string& raw){
 
                 if (h.localSize > blockchain_.size())
                     requestBlock(peer, blockchain_.size());
+                else{
+                    synchronized_ = true;
+                }
 
                 sendAck(peer);
             }
@@ -72,7 +75,7 @@ void NodeNetwork::handleMessage(const PeerInfo& peer, const std::string& raw){
                     if(h.localSize > blockchain_.size()){
                         requestBlock(peer, blockchain_.size());
                     }else{
-                        // TODO: gérer le cas où la taille locale est suffisante
+                        synchronized_ = true;
                     }
                 }
             } catch(...) {}

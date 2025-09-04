@@ -2,6 +2,8 @@
 #include <QObject>
 #include <QQmlEngine>
 #include <QTimer>
+#include <QCoreApplication>
+#include <thread>
 #include "Blockchain.hpp"
 
 class BlockchainFacade : public QObject {
@@ -38,6 +40,17 @@ public:
     m_periodicTimer->setInterval(5000);
     connect(m_periodicTimer, &QTimer::timeout, this, &BlockchainFacade::periodicUpdate);
     m_periodicTimer->start();
+
+    m_chain.getNetwork().start();
+    m_chain.getNetwork().connect(PeerInfo("77.56.233.210", 8187));
+
+    while (!m_chain.getNetwork().isSynchronized()) {
+        QCoreApplication::processEvents();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+
+
     }
 
     Q_INVOKABLE void startMining() {
