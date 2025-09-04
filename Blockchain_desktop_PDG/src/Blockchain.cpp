@@ -126,13 +126,10 @@ void Blockchain::doMine(const PubKey& minerPubKey) {
         std::cout << "Mining started in background thread." << std::endl;
         const double alpha = 0.3;
 
-        while(isMining_.load()) {
+        while(isMining_) {
             auto start = std::chrono::steady_clock::now();
             // Créer un nouveau bloc avec les transactions en attente
-
-            //std::cout << "Mining new block..." << std::endl;
-
-            Block newBlock = Block::createBlock(*this, minerPubKey, &isMining_);
+            Block newBlock = Block::createBlock(*this, minerPubKey, &isMining_, &lastHashrateMHs);
 
             //std::cout << "Mining new block at index " << newBlock.getIndex() << " with target " << (int)newBlock.getTarget().value << std::endl;
             auto end = std::chrono::steady_clock::now();
@@ -140,22 +137,14 @@ void Blockchain::doMine(const PubKey& minerPubKey) {
             bool accepted = addBlock(newBlock);
 
             if (accepted) {
-                // hashrate approx = nonce / durée
-                double secs = std::chrono::duration<double>(end - start).count();
-                if (secs > 0.0) {
-                    double mh_inst = (double)newBlock.getNonce() / secs / 1e6;
-                    double prev = lastHashrateMHs.load();
-                    double ema = alpha * mh_inst + (1.0 - alpha) * prev;
-                    lastHashrateMHs.store(ema);
-                }
 
                 // TPS EMA (recalcule tps immédiat sur fenêtre)
                 {
                     std::lock_guard<std::mutex> lk(mtx_);
                     double tps_inst = computeTPS_NoLock(10);
-                    double prev = lastTPS_.load();
+                    double prev = lastTPS_;
                     double ema = alpha * tps_inst + (1.0 - alpha) * prev;
-                    lastTPS_.store(ema);
+                    lastTPS_ = ema;
                 }
 
                 // broadcast réseau

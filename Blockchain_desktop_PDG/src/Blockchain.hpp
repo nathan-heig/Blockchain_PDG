@@ -19,10 +19,10 @@ private:
     TransactionPool transactionPool{*this};//pool de transactions en attente
     UTXOs utxos;//output de transactions non dépensées (unspent transaction outputs)
 
-    mutable std::mutex mtx_; //protège blocks / utxos / transactionPool
+    mutable std::mutex mtx_;
     std::atomic<bool> isMining_{false};
-    std::atomic<double> lastHashrateMHs{0.0}; //pour les stats
-    std::atomic<double> lastTPS_{0.0};
+    double lastHashrateMHs{0.0};
+    double lastTPS_{0.0};
 
     std::function<void(const Block&)> onNewBlock; // nouveau bloc accepté (local ou réseau)
 

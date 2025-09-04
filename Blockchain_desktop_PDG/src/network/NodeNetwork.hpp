@@ -66,6 +66,7 @@ public:
     bool isRunning() const { return isRunning_; }
 
     void connect(const PeerInfo& peer) {
+
         auto conn = std::make_shared<TcpConnection>(io_);
         conn->socketRef().async_connect({ boost::asio::ip::make_address(peer.getIp()), peer.getPort() },
             [this, conn, peer](auto ec){
@@ -75,7 +76,13 @@ public:
                     setupCallbacks(peer, conn);
                     sendVersion(peer);
                 }
+                std::cout << "Connect to " << peer.getIp() << ":" << peer.getPort()
+                          << (ec ? " failed: " + ec.message() : " succeeded") << std::endl;
             });
+
+        if (!synchronized_){
+            waitSync.acquire();
+        }
     }
 
     int peerCount() const { return peerCount_.load(); }
@@ -102,6 +109,14 @@ private:
 
     std::atomic<int> peerCount_{0};
     bool upnpDone_{false};
+    std::atomic<bool> synchronized_{false};
+    std::binary_semaphore waitSync{0};
+
+    void isSynchronized(){
+        if (synchronized_) return;
+        synchronized_.store(true);
+        waitSync.release();
+    }
 
     void accept(){
         auto conn = std::make_shared<TcpConnection>(io_);

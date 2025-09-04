@@ -5,7 +5,7 @@ import "../styles"
 Button {
     id: root
 
-    text: BlockchainAPI.mining ? "Arrêter le mining" : "Démarrer le mining"
+    text: BlockchainAPI.mining ? "Stop Mining" : "Start Mining"
     hoverEnabled: true
 
     onClicked: {

@@ -2,6 +2,8 @@
 #include <QObject>
 #include <QQmlEngine>
 #include <QTimer>
+#include <QCoreApplication>
+#include <thread>
 #include "Blockchain.hpp"
 
 class BlockchainFacade : public QObject {
@@ -34,10 +36,14 @@ public:
             }, Qt::QueuedConnection);
         });
 
-    // Signal périodique toutes les 5 secondes
-    m_periodicTimer->setInterval(5000);
-    connect(m_periodicTimer, &QTimer::timeout, this, &BlockchainFacade::periodicUpdate);
-    m_periodicTimer->start();
+        // Signal périodique toutes les 3 secondes
+        m_periodicTimer->setInterval(3000);
+        connect(m_periodicTimer, &QTimer::timeout, this, &BlockchainFacade::periodicUpdate);
+        m_periodicTimer->start();
+
+        m_chain.getNetwork().start();
+        m_chain.getNetwork().connect(PeerInfo("77.56.233.210", 8187));
+
     }
 
     Q_INVOKABLE void startMining() {
@@ -69,10 +75,16 @@ public:
         }
     }
     Q_INVOKABLE double getLastHashrateMHs() const {
-        return m_chain.getLastHashrateMHs();
+        if (m_chain.isMining()) {
+            return m_chain.getLastHashrateMHs();
+        }
+        return 0.0;
     }
     Q_INVOKABLE double getLastTPS() const {
-        return m_chain.getLastTPS();
+        if (m_chain.isMining()) {
+            return m_chain.getLastTPS();
+        }
+        return 0.0;
     }
 
     QString getPublicKeyString() const {
@@ -88,7 +100,7 @@ public:
 signals:
     void blockCountChanged();
     void miningChanged();
-    void periodicUpdate(); // émis toutes les 5 secondes
+    void periodicUpdate(); // émis toutes les 3 secondes
 
 private:
     Blockchain& m_chain;

@@ -82,7 +82,7 @@ public:
     Block() = default; // pour désérialisation
 
     /*Crée un nouveau bloc à partir de la blockchain et de la clé publique du mineur*/
-    static Block createBlock(const Blockchain& blockchain, const PubKey& minerPubKey, const std::atomic<bool>* continueFlag);
+    static Block createBlock(const Blockchain& blockchain, const PubKey& minerPubKey, const std::atomic<bool>* continueFlag, double* hashrateMHs);
 
     // Operators
     const Transaction& operator[](const size_t i) const {return transactions[i];}

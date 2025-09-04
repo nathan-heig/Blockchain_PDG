@@ -2,7 +2,7 @@
 #include "Blockchain.hpp"
 
 
-Block Block::createBlock(const Blockchain& blockchain, const PubKey& minerPubKey, const std::atomic<bool>* continueFlag) {
+Block Block::createBlock(const Blockchain& blockchain, const PubKey& minerPubKey, const std::atomic<bool>* continueFlag, double* hashrateMHs) {
 
 
     Block block;
@@ -15,10 +15,32 @@ Block Block::createBlock(const Blockchain& blockchain, const PubKey& minerPubKey
 
     // Proof of Work
     block.nonce = 0;
+    auto startTime = std::chrono::high_resolution_clock::now();
+
     do {
         ++block.nonce;
         block.hash = block.calculateHash();
+
+        // Mettre à jour le hashrate toutes les 65536 itérations pour ne pas impacter les performances
+        if ((block.nonce & 0xFFFF) == 0 && hashrateMHs) {
+            auto now = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - startTime).count();
+            if (duration > 0) {
+                // (nonce / duration_us) * 1'000'000 = H/s. On divise par 1'000'000 pour avoir des MH/s.
+                // Donc MH/s = nonce / duration_us
+                *hashrateMHs = static_cast<double>(block.nonce) / duration;
+            }
+        }
     } while (!block.hashMatchesDifficulty() && (block.index == blockchain.size()) && continueFlag->load());
+
+    // Calcul final du hashrate pour la précision
+    if (hashrateMHs) {
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto totalDuration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+        if (totalDuration > 0) {
+            *hashrateMHs = static_cast<double>(block.nonce) / totalDuration;
+        }
+    }
 
     return block;
 }
