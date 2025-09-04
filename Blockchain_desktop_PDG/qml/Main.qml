@@ -413,6 +413,13 @@ ApplicationWindow {
                         model: BlockchainAPI.transactionCount
                         spacing: 10
 
+                        // Ajout de ce gestionnaire pour défiler vers le bas
+                        onCountChanged: {
+                            if (count > 0) {
+                                positionViewAtEnd()
+                            }
+                        }
+
                         delegate: Rectangle {
                             width: transactionList.width
                             height: 80
