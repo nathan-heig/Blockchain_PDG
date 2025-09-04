@@ -66,9 +66,6 @@ public:
     bool isRunning() const { return isRunning_; }
 
     void connect(const PeerInfo& peer) {
-        if (! synchronized_){
-            waitSync.acquire();
-        }
 
 
         auto conn = std::make_shared<TcpConnection>(io_);
@@ -86,7 +83,6 @@ public:
 
         if (! synchronized_){
             waitSync.acquire();
-            waitSync.release();
         }
     }
 
@@ -115,9 +111,10 @@ private:
     std::atomic<int> peerCount_{0};
     bool upnpDone_{false};
     bool synchronized_{false};
-    std::binary_semaphore waitSync{1};
+    std::binary_semaphore waitSync{0};
 
     void isSynchronized(){
+        if (synchronized_) return;
         synchronized_ = true;
         waitSync.release();
     }
