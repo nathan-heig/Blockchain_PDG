@@ -1,0 +1,296 @@
+name: CI
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  build-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            host: linux
+            arch: linux_gcc_64
+          - os: macos-latest
+            host: mac
+            arch: clang_64
+          - os: windows-latest
+            host: windows
+            arch: win64_msvc2022_64
+    runs-on: ${{ matrix.os }}
+    env:
+      BUILD_DIR: build
+      CMAKE_BUILD_TYPE: Release
+      QT_VER: 6.8.3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Setup Ninja (all OS)
+        uses: seanmiddleditch/gha-setup-ninja@v3
+
+      # Python pour aqt (détection modules Qt)
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install aqtinstall
+        run: python -m pip install --upgrade aqtinstall
+
+      - name: Discover available Qt modules
+        id: detect
+        shell: python
+        run: |
+          import os, subprocess, sys
+          host = "${{ matrix.host }}"
+          arch = "${{ matrix.arch }}"
+          ver  = os.environ["QT_VER"]
+          def listmods():
+              try:
+                  out = subprocess.check_output(
+                      [sys.executable, "-m", "aqt", "list-qt", host, "desktop", "--modules", ver, arch],
+                      text=True
+                  )
+                  mods = set()
+                  for line in out.splitlines():
+                      line = line.strip()
+                      if line and not line.startswith("WARNING"):
+                          mods.add(line.lower())
+                  return mods
+              except Exception as e:
+                  print("Module listing failed:", e, file=sys.stderr)
+                  return set()
+          mods = listmods()
+          print(f"Available modules: {mods}", file=sys.stderr)
+
+          wanted = []
+          for cand in ("qtquickcontrols2", "qtquickcontrols"):
+              if cand in mods:
+                  wanted.append(cand); break
+          if "qt5compat" in mods:
+              wanted.append("qt5compat")
+          else:
+              print("Warning: qt5compat not found in module list, adding it anyway", file=sys.stderr)
+              wanted.append("qt5compat")
+          for mod in ["qtcharts", "qtnetworkauth", "qtwebsockets"]:
+              if mod in mods:
+                  wanted.append(mod)
+
+          modules_str = ' '.join(wanted)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"modules={modules_str}\n")
+          print(f"Selected modules: {modules_str or '(none)'}")
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VER }}
+          target: desktop
+          host:   ${{ matrix.host }}
+          arch:   ${{ matrix.arch }}
+          modules: ${{ steps.detect.outputs.modules }}
+          cache: true
+
+      # ===== vcpkg pour Boost/OpenSSL/miniupnpc (toutes plateformes) =====
+      - name: vcpkg build
+        id: vcpkg
+        uses: johnwason/vcpkg-action@v7
+        with:
+            pkgs: boost-system boost-asio openssl miniupnpc cereal
+            triplet: ${{ runner.os == 'Windows' && 'x64-windows' || runner.os == 'macOS' && 'x64-osx' || 'x64-linux' }}
+            token: ${{ github.token }}
+
+      - name: Select vcpkg triplet
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            echo "VCPKG_DEFAULT_TRIPLET=x64-windows" >> $GITHUB_ENV
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            echo "VCPKG_DEFAULT_TRIPLET=x64-osx" >> $GITHUB_ENV
+          else
+            echo "VCPKG_DEFAULT_TRIPLET=x64-linux" >> $GITHUB_ENV
+          fi
+          echo "Using triplet: $VCPKG_DEFAULT_TRIPLET"
+
+      # ===== Debug Qt (facultatif) =====
+      - name: Debug Qt Installation (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          echo "QTDIR=$QTDIR"
+          echo "Qt6_DIR=$Qt6_DIR"
+          which qmake || true
+          qmake -v || true
+          echo "--- Checking for Core5Compat ---"
+          if [ -d "$Qt6_DIR/../Qt6Core5Compat" ]; then
+            echo "Qt6Core5Compat directory found"
+            ls -la "$Qt6_DIR/../Qt6Core5Compat" || true
+          else
+            echo "Qt6Core5Compat directory NOT found"
+            echo "Listing Qt6 cmake directories:"
+            ls -la "$Qt6_DIR/.." | grep Qt6 || true
+          fi
+        shell: bash
+
+      - name: Debug Qt Installation (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          echo "QTDIR=$env:QTDIR"
+          echo "Qt6_DIR=$env:Qt6_DIR"
+          where.exe qmake 2>$null || echo "qmake not in PATH"
+          qmake -v
+          echo "--- Checking for Core5Compat ---"
+          if ($env:Qt6_DIR) {
+            $qtCmakeDir = Split-Path $env:Qt6_DIR
+          } elseif ($env:QTDIR) {
+            $qtCmakeDir = Join-Path $env:QTDIR "lib\cmake"
+          } else {
+            $qmakePath = (where.exe qmake 2>$null | Select-Object -First 1)
+            if ($qmakePath) {
+              $qtBinDir = Split-Path $qmakePath
+              $qtRootDir = Split-Path $qtBinDir
+              $qtCmakeDir = Join-Path $qtRootDir "lib\cmake"
+            } else {
+              $qtCmakeDir = "$env:QTDIR\lib\cmake"
+            }
+          }
+          echo "Qt CMake directory: $qtCmakeDir"
+          $qt6Core5CompatPath = Join-Path $qtCmakeDir "Qt6Core5Compat"
+          if (Test-Path $qt6Core5CompatPath) {
+            echo "Qt6Core5Compat directory found at $qt6Core5CompatPath"
+            Get-ChildItem $qt6Core5CompatPath
+          } else {
+            echo "Qt6Core5Compat directory NOT found"
+            if (Test-Path $qtCmakeDir) {
+              Get-ChildItem $qtCmakeDir -Filter "Qt6*" | Select-Object Name
+            }
+          }
+        shell: pwsh
+
+      # ===== Configure / Build / Test =====
+      - name: Configure (CMake + Ninja) on Unix
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            EXTRA_CMAKE_ARGS="-DCMAKE_OSX_ARCHITECTURES=x86_64"
+          fi
+          cmake ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} \
+            -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} \
+            -DCMAKE_PREFIX_PATH="$QTDIR" \
+            -DUSE_SYSTEM_MINIUPNPC=OFF \
+            $EXTRA_CMAKE_ARGS
+
+      - name: Configure (CMake + Ninja) on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cmake ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} `
+            -S Blockchain_desktop_PDG -B ${{ env.BUILD_DIR }} -G Ninja `
+            -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} `
+            -DCMAKE_PREFIX_PATH="$env:QTDIR" `
+            -DUSE_SYSTEM_MINIUPNPC=OFF
+
+      - name: Build
+        run: cmake --build ${{ env.BUILD_DIR }} --parallel
+
+      - name: CTest
+        run: ctest --test-dir ${{ env.BUILD_DIR }} --output-on-failure
+
+      - name: Build AppImage (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # Download linuxdeploy and plugins
+          wget -c https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -c https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x ./linuxdeploy*.AppImage
+
+          # Prepare AppDir
+          mkdir -p AppDir
+          
+          # Set version
+          export VERSION=$(git describe --tags --always --dirty)
+          export QML_SOURCES_PATHS=Blockchain_desktop_PDG/qml
+
+          # Run linuxdeploy
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir \
+            -e ${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG \
+            -d packaging/linux/Blockchain_desktop_PDG.desktop \
+            -i packaging/linux/blockchain.svg \
+            --plugin qt \
+            --output appimage
+
+      # ===== Deploy (inchangé) =====
+      - name: Deploy Qt Dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $windeployqt = where.exe windeployqt 2>$null | Select-Object -First 1
+          if (-not $windeployqt) {
+            if ($env:QTDIR) {
+              $windeployqt = Join-Path $env:QTDIR "bin\windeployqt.exe"
+            } else {
+              $windeployqt = "$env:QTDIR\bin\windeployqt.exe"
+            }
+          }
+          echo "Using windeployqt: $windeployqt"
+
+          $deployDir = "${{ env.BUILD_DIR }}\deploy"
+          New-Item -ItemType Directory -Force -Path $deployDir | Out-Null
+
+          Copy-Item "${{ env.BUILD_DIR }}\appBlockchain_desktop_PDG.exe" -Destination $deployDir
+
+          echo "Listing deployment targets..."
+          & $windeployqt --list target "$deployDir\appBlockchain_desktop_PDG.exe" 2>&1 | Out-String
+
+          echo "Starting deployment..."
+          $windeployResult = & $windeployqt `
+            --release `
+            --qmldir "Blockchain_desktop_PDG" `
+            --no-translations `
+            --no-system-d3d-compiler `
+            --no-opengl-sw `
+            "$deployDir\appBlockchain_desktop_PDG.exe" 2>&1
+          echo "WinDeployQt output:"; $windeployResult | Out-String
+
+          # Copier runtimes VC++ (best-effort)
+          $vcRuntimeDlls = @("msvcp140.dll","vcruntime140.dll","vcruntime140_1.dll")
+          foreach ($vcDll in $vcRuntimeDlls) {
+            $p = "C:\Windows\System32\$vcDll"
+            if (Test-Path $p) { Copy-Item $p -Destination $deployDir -ErrorAction SilentlyContinue }
+          }
+
+          echo "`nDeployment completed. Contents of deploy directory:"
+          Get-ChildItem $deployDir -Recurse | Select-Object FullName | Out-String
+        shell: pwsh
+
+      - name: Deploy Qt Dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          macdeployqt=$(which macdeployqt || echo "$QTDIR/bin/macdeployqt")
+          echo "Using macdeployqt: $macdeployqt"
+          "$macdeployqt" "${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG.app" -qmldir=Blockchain_desktop_PDG -always-overwrite
+        shell: bash
+
+      - name: Upload artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ runner.os }}
+          path: ${{ env.BUILD_DIR }}/deploy/
+          if-no-files-found: error
+
+      - name: Upload artifact (Linux/macOS)
+        if: runner.os != 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ runner.os }}
+          path: |
+            Blockchain_PDG*.AppImage
+            ${{ env.BUILD_DIR }}/appBlockchain_desktop_PDG.app
+          if-no-files-found: ignore
