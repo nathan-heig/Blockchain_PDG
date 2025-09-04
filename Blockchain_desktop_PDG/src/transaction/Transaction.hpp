@@ -12,7 +12,7 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/types/string.hpp>
 
-#include "test/crypto.hpp"
+#include "cryptography/crypto.hpp"
 #include "OutputReference.hpp"
 #include "transaction/UTXOs.hpp"
 

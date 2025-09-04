@@ -1,7 +1,7 @@
 #ifndef OUTPUT_HPP
 #define OUTPUT_HPP
 
-#include "test/crypto.hpp"
+#include "cryptography/crypto.hpp"
 #include <cereal/types/string.hpp>
 
 /*Cette classe représente l'Output de transaction*/

@@ -4,54 +4,11 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QDebug>
-
-#include <openssl/pem.h>
-#include <openssl/evp.h>
+#include <QFileInfo>
 
 #include "Blockchain.hpp"
 #include "ui/BlockchainFacade.hpp"
-
-
-
-// Fonction pour charger la clé privée depuis un fichier
-EVP_PKEY* loadPrivateKey(const QString& path) {
-    QByteArray pathBytes = path.toUtf8();
-    FILE* fp = fopen(pathBytes.constData(), "r");
-    if (!fp) {
-        qWarning() << "Impossible d'ouvrir le fichier de clé privée pour lecture:" << path;
-        return nullptr;
-    }
-    EVP_PKEY* pkey = PEM_read_PrivateKey(fp, NULL, NULL, NULL);
-    fclose(fp);
-    if (!pkey) {
-        qWarning() << "Impossible de lire la clé privée depuis le fichier:" << path;
-    }
-    return pkey;
-}
-
-// Fonction pour sauvegarder la clé privée dans un fichier
-bool savePrivateKey(EVP_PKEY* pkey, const QString& path) {
-    QDir dir = QFileInfo(path).dir();
-    if (!dir.exists()) {
-        if (!dir.mkpath(".")) {
-            qWarning() << "Impossible de créer le répertoire de configuration:" << dir.path();
-            return false;
-        }
-    }
-
-    QByteArray pathBytes = path.toUtf8();
-    FILE* fp = fopen(pathBytes.constData(), "w");
-    if (!fp) {
-        qWarning() << "Impossible d'ouvrir le fichier de clé privée pour écriture:" << path;
-        return false;
-    }
-    bool success = PEM_write_PrivateKey(fp, pkey, NULL, NULL, 0, NULL, NULL);
-    fclose(fp);
-    if (!success) {
-        qWarning() << "Impossible d'écrire la clé privée dans le fichier:" << path;
-    }
-    return success;
-}
+#include "cryptography/crypto.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -66,21 +23,42 @@ int main(int argc, char *argv[])
     QString keyPath = configPath + "/wallet.pem";
     qDebug() << "Chemin de la clé du portefeuille:" << keyPath;
 
-    EVP_PKEY* privKey = loadPrivateKey(keyPath);
+    EVP_PKEY* privKey = nullptr;
+    
+    // Essayer de charger la clé si le fichier existe
+    if (QFileInfo::exists(keyPath)) {
+        try {
+            privKey = crypto::getPrivateKey(keyPath.toStdString());
+        } catch (const std::exception& e) {
+            qWarning() << "Impossible de charger la clé privée existante:" << e.what() << ". Une nouvelle clé sera générée.";
+            privKey = nullptr; // S'assurer que la clé est nulle si le chargement échoue
+        }
+    }
 
     if (!privKey) {
-        qInfo() << "Aucune clé de portefeuille existante trouvée. Génération d'une nouvelle clé...";
-        privKey = crypto::createPrivateKey();
-        if (privKey) {
-            if (savePrivateKey(privKey, keyPath)) {
+        qInfo() << "Aucune clé de portefeuille valide trouvée. Génération d'une nouvelle clé...";
+        try {
+            privKey = crypto::createPrivateKey();
+            if (privKey) {
+                // Créer le répertoire si nécessaire
+                QDir dir = QFileInfo(keyPath).dir();
+                if (!dir.exists()) {
+                    if (!dir.mkpath(".")) {
+                        qCritical() << "ERREUR: Impossible de créer le répertoire de configuration:" << dir.path();
+                        if(privKey) EVP_PKEY_free(privKey);
+                        return -1;
+                    }
+                }
+                crypto::savePrivateKey(privKey, keyPath.toStdString());
                 qInfo() << "Nouvelle clé de portefeuille générée et sauvegardée avec succès.";
             } else {
-                qCritical() << "ERREUR: Impossible de sauvegarder la nouvelle clé de portefeuille. L'application ne peut pas continuer en toute sécurité.";
-                return -1; // Erreur critique
+                qCritical() << "ERREUR: Impossible de générer la clé privée.";
+                return -1;
             }
-        } else {
-            qCritical() << "ERREUR: Impossible de générer la clé privée.";
-            return -1;
+        } catch (const std::exception& e) {
+            qCritical() << "ERREUR lors de la création/sauvegarde de la clé:" << e.what();
+            if(privKey) EVP_PKEY_free(privKey);
+            return -1; // Erreur critique
         }
     } else {
         qInfo() << "Clé de portefeuille existante chargée avec succès.";
@@ -110,7 +88,9 @@ int main(int argc, char *argv[])
     QObject::connect(&app, &QGuiApplication::aboutToQuit, [&]() {
         blockchain.stopMining();
         blockchain.getNetwork().stop();
-        EVP_PKEY_free(privKey);
+        if (privKey) {
+            EVP_PKEY_free(privKey);
+        }
     });
 
     return app.exec();

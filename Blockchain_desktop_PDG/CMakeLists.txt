@@ -98,7 +98,7 @@ add_library(blockchain_core
         src/transaction/Transaction.cpp
         src/transaction/TransactionPool.cpp
         src/network/NodeNetwork.cpp
-        src/test/crypto.cpp
+        src/cryptography/crypto.cpp
 )
 
 set_target_properties(blockchain_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
