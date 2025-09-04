@@ -9,15 +9,12 @@ namespace crypto {
 
     EVP_PKEY* createPrivateKey() {
 
-        void seedOpenSSL() {
-            if (!RAND_status()) {
-                // Seed from various entropy sources
-                if (RAND_poll() == 0) {
-                    throw std::runtime_error("Failed to seed OpenSSL RNG");
-                }
+        if (!RAND_status()) {
+            // Seed from various entropy sources
+            if (RAND_poll() == 0) {
+                throw std::runtime_error("Failed to seed OpenSSL RNG");
             }
         }
-
 
         EVP_PKEY* pkey = nullptr;
         EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);
