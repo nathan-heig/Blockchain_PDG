@@ -298,6 +298,7 @@ ApplicationWindow {
                                 font.pixelSize: 10
                                 font.family: "monospace"
                                 color: Theme.textColor
+                                placeholderTextColor: Theme.backgroundColor
                                 selectByMouse: true
                                 
                                 background: Rectangle {
@@ -331,6 +332,7 @@ ApplicationWindow {
                                 }
                                 font.pixelSize: 12
                                 color: Theme.textColor
+                                placeholderTextColor: Theme.backgroundColor
                                 selectByMouse: true
                                 
                                 background: Rectangle {
