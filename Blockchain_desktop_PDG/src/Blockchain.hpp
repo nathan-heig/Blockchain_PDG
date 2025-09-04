@@ -21,8 +21,8 @@ private:
 
     mutable std::mutex mtx_;
     std::atomic<bool> isMining_{false};
-    std::atomic<double> lastHashrateMHs{0.0};
-    std::atomic<double> lastTPS_{0.0};
+    double lastHashrateMHs{0.0};
+    double lastTPS_{0.0};
 
     std::function<void(const Block&)> onNewBlock; // nouveau bloc accepté (local ou réseau)
 
