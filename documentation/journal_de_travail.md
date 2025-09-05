@@ -15,6 +15,7 @@ Aucun
 ### Besoins particuliers
 Aucun
 
+
 ## 20.08.25
 ### Travail réalisé la veille
 * Organistion (maquette site web + approfondissement conaissance QT)
@@ -30,85 +31,140 @@ Manque de conaissance DevOps
 ### Besoins particuliers
 Aucun
 
+
 ## 21.08.25
 ### Travail réalisé la veille
+* Familiarisation avec Qt
+* Familiarisation avec les actions github
+* répartition des tâches
 ### Objectif de la journée
+* Mettre en ligne le site landing
+* Mettre en place des actions github de démonstration pour lundi
 ### Emplacement du groupe pour la journée
+Télétravail
 ### Problèmes rencontrés la veille
+Aucun
 ### Besoins particuliers
+Aucun
 
 
 ## 22.08.25
 ### Travail réalisé la veille
+* Commencé à créer des actions github pour le site et l'app
+* Site en ligne
 ### Objectif de la journée
+* Finir les actions github pour qu'elles marchent
 ### Emplacement du groupe pour la journée
+Télétravail 
 ### Problèmes rencontrés la veille
+Aucun
 ### Besoins particuliers
+Aucun
 
 
 ## 25.08.25
-### Travail réalisé la veille
+### Travail réalisé vendredi
+* Les actions sont créées
 ### Objectif de la journée
+Présentation du travail de la première semaine
 ### Emplacement du groupe pour la journée
+HEIG
 ### Problèmes rencontrés la veille
+L'action d'intégration continue ne build pas l'application Qt sur Windows
 ### Besoins particuliers
+Aucun
 
 
 ## 26.08.25
 ### Travail réalisé la veille
+* Mise en place de la présentation. Réorganisation de code et ajout des artifacts multi-OS.
 ### Objectif de la journée
+Avancer le design de l'app desktop. Implémentation des transactions dans le backend 
 ### Emplacement du groupe pour la journée
+Télétravail
 ### Problèmes rencontrés la veille
+Aucun
 ### Besoins particuliers
+Aucun
 
 
 ## 27.08.25
 ### Travail réalisé la veille
+* Avancement du backend
 ### Objectif de la journée
+* Code backend
 ### Emplacement du groupe pour la journée
+Télétravail
 ### Problèmes rencontrés la veille
+Complications lors de l'implémentation des transactions dans le backend
 ### Besoins particuliers
+Aucun
 
 
 ## 28.08.25
 ### Travail réalisé la veille
+* Avancement du backend
 ### Objectif de la journée
+* Code backend
+* Tests
 ### Emplacement du groupe pour la journée
+Télétravail
 ### Problèmes rencontrés la veille
+Aucun
 ### Besoins particuliers
-
+Aucun
 
 ## 29.08.25
 ### Travail réalisé la veille
+* Avancement du backend
 ### Objectif de la journée
+* Avancer le backend encore
+* Link frontend - backend
 ### Emplacement du groupe pour la journée
+Télétravail
 ### Problèmes rencontrés la veille
+Les tests sont difficile à conceptualiser
 ### Besoins particuliers
-
+Aucun
 
 ## 1.08.25
-### Travail réalisé la veille
+### Travail réalisé vendredi
+* Backend
+* Link backend - frontend
 ### Objectif de la journée
+* Comencer vidéo de présentation
 ### Emplacement du groupe pour la journée
+Télétravail
 ### Problèmes rencontrés la veille
+On se bat contre le projet pour lier backend et frontend
 ### Besoins particuliers
-
+AUcun
 
 ## 2.08.25
 ### Travail réalisé la veille
+* Avancement du link backend et frontend
+* Trouvé un logiciel vidéo pour faire la vidéo
+* Fait la vidéo pour le site web
 ### Objectif de la journée
+* Link backend - frontend
 ### Emplacement du groupe pour la journée
+Télétravail
 ### Problèmes rencontrés la veille
+Link backend-frontend..
 ### Besoins particuliers
-
+Aucun
 
 ## 3.08.25
 ### Travail réalisé la veille
+* Debug pour link backend - frontend
 ### Objectif de la journée
+* Réussir à link le backend et le frontend
 ### Emplacement du groupe pour la journée
+Télétravail
 ### Problèmes rencontrés la veille
+Le projet
 ### Besoins particuliers
-
+Aucun
 
 ## 4.08.25
 ### Travail réalisé la veille
