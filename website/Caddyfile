@@ -5,6 +5,6 @@
 {$DOMAIN} {
   root * /usr/share/caddy
   encode gzip zstd
-  try_files {path} {path}/index.html /index.html
+  try_files {path} {path}.html {path}/index.html /index.html
   file_server
 }
