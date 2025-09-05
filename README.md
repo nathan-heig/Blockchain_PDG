@@ -27,17 +27,19 @@ Application de portefeuille de cryptomonnaie développée avec Qt6 et C++17 pour
 
 ## Structure de projet
 ```text
-Blockchain_desktop_PDG/
-├── CMakeLists.txt            # Configuration de build
-├── src/
-│   ├── main.cpp              # Point d'entrée
-│   ├── resources.qrc         # Ressources QML
-│   ├── backend/              # dossier Backend
-├── qml/
-│   ├── Main.qml              # Interface principale
-│   ├── components/           # Composants
-│   └── styles/               # Thème et styles
-└── tests/                    # Tests unitaires
+src/
+├── Blockchain.cpp/hpp     # Logique de la blockchain
+├── Block.cpp/hpp          # Structure des block et minage
+├── cryptography/          # Logique cryptographique
+├── network/               # P2P networking
+├── transaction/           # Gestion des transaction 
+└── ui/                    # Interface Qt/QML
+
+qml/
+├── Main.qml              # UI principale
+├── components/           # Composants UI
+└── styles/               # Thème et style
+
 ```
 ## Script de build et lancement
 
@@ -99,6 +101,5 @@ Lancer l'exécutable de chaque test dans le dossier build après la compilation
 | Linking errors Windows | Installer les Visual C++ Redistributables |
 | Bundle macOS ne se lance pas | Utiliser macdeployqt pour déployer les dépendances |
 
-## Déploiement
-TODO
-
+## Contribution
+Veuillez consulter le [guide de contribution](CONTRIBUTING.md) pour plus de détails
